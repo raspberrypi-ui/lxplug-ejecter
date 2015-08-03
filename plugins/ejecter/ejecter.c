@@ -8,14 +8,6 @@
 #include <gdu/gdu.h>
 #include <gio/gio.h>
 
-#ifdef NOTIFY
-#  include <libnotify/notify.h>
-#ifndef NOTIFY_CHECK_VERSION
-#  define NOTIFY_CHECK_VERSION(a,b,c) 0
-#endif
-static NotifyNotification *nn;
-#endif
-
 #include "config.h"
 #include "plugin.h"
 
@@ -411,8 +403,6 @@ static void check_icon (EjecterPlugin *data)
 //        if (num > 0) {
 //            this.indicator.set_status(AppIndicator.Status.ACTIVE);
 //        } else {
-//            try { if (this.notification != null) this.notification.close(); }
-//            catch (GLib.Error error) { report_error(error); };
 //            this.indicator.set_status(AppIndicator.Status.PASSIVE);
 //        }
 }
@@ -439,12 +429,6 @@ static void handle_unmounted (EjecterDevice *dev)
         g_notification_set_body (dev->plugin->notification, "It is now possible to safely remove the device.");
         g_application_send_notification (dev->plugin->application, "media-eject", dev->plugin->notification);
     }
-    
-    //    this.notification.update(_("%s can be removed").printf(device.name),
-    //                             _("It's now possible to safely remove the device."), 
-    //                             "media-eject");
-    //    try { this.notification.show(); }
-    //    catch (GLib.Error error) { report_error(error); };
 }
 
 static void handle_removed (EjecterDevice *dev)
@@ -459,8 +443,6 @@ static void handle_removed (EjecterDevice *dev)
         g_application_withdraw_notification (dev->plugin->application, "media-eject");
     
     //                this.indicator.set_menu(this.menu);
-    //                try { this.notification.close(); }
-    //                catch (GLib.Error error) { report_error(error); };
 }
 
 /* Plugin functions */
