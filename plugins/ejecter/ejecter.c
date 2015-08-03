@@ -48,6 +48,8 @@ typedef struct {
     GSList *mounts;
     GtkWidget *icon;
     GtkWidget *menuitem;
+    GtkWidget *label;
+    GtkWidget *eject;
     GtkMenu *menu;
     gboolean was_removed;
     gboolean icon_updated;
@@ -87,35 +89,45 @@ static void handle_removed (EjecterDevice *dev);
 static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin)
 {
     EjecterDevice *d = malloc (sizeof (EjecterDevice));
-    
+
     d->plugin = plugin;
-    
+
     d->was_removed = FALSE;
     d->icon_updated = FALSE;
     d->volume_count = 0;
     d->mount_count = 0;
-    
+
     d->drive = drive;
     d->device = device;
-    
+
     d->volumes = NULL;
     d->mounts = NULL;
-    
+
     d->menuitem = gtk_image_menu_item_new ();
-    gtk_menu_item_set_label (GTK_MENU_ITEM (d->menuitem), "");
-    
+
+    GtkWidget *box = gtk_hbox_new (FALSE, 4);
+    gtk_container_add (GTK_CONTAINER (d->menuitem), box);
+
+    d->label = gtk_label_new (NULL);
+    gtk_label_set_text (GTK_LABEL (d->label), "");
+    gtk_misc_set_alignment (GTK_MISC (d->label), 0.0, 0.5);
+    gtk_box_pack_start (GTK_BOX (box), d->label, TRUE, TRUE, 0);
+
+    d->eject = gtk_image_new_from_icon_name ("media-eject", GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start (GTK_BOX (box), d->eject, FALSE, FALSE, 0);
+
     d->icon = gtk_image_new_from_gicon (g_drive_get_icon (drive), GTK_ICON_SIZE_BUTTON);
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (d->menuitem), TRUE);
     gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (d->menuitem), d->icon);
-    
+
     gtk_widget_show_all (d->menuitem);
     g_signal_connect (d->menuitem, "activate", G_CALLBACK(device_handle_clicked_eject), d);
-    
+
     if (gdu_device_is_optical_disc (device)) device_set_mounted (d, TRUE);
     else device_set_mounted (d, FALSE);
-    
+
     g_signal_connect (drive, "disconnected", G_CALLBACK(device_handle_removed_drive), d);
-        
+
     return d;
 }
 
@@ -158,7 +170,7 @@ static void device_update_label (EjecterDevice *dev)
         }
         strcat (buffer, ")");
     }
-    gtk_menu_item_set_label (GTK_MENU_ITEM (dev->menuitem), buffer);
+    gtk_label_set_text (GTK_LABEL (dev->label), buffer);
 }
 
 static void device_attach (EjecterDevice *dev, GtkMenu *menu)
@@ -531,7 +543,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     ej->tray_icon = gtk_image_new ();
     set_icon (panel, ej->tray_icon, "media-eject", 0);
-    gtk_widget_set_tooltip_text (ej->tray_icon, _("This is the eject plugin ..."));
+    gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
     gtk_widget_set_visible (ej->tray_icon, TRUE);
 
     /* Allocate top level widget and set into Plugin widget pointer. */
@@ -559,13 +571,6 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Create and populate the menu */
     ej->menu = gtk_menu_new ();
-    
-    GtkWidget *item = gtk_image_menu_item_new_with_label ("Eject removable media");
-    gtk_widget_set_sensitive (item, FALSE);
-    gtk_menu_append (ej->menu, item);
-    
-    item = gtk_separator_menu_item_new ();
-    gtk_menu_append (ej->menu, item);
     
     load_devices (ej);
     
