@@ -593,13 +593,15 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
 
 static void do_popup (EjecterPlugin *ej, char *str1, char *str2)
 {
+    GtkWidget *item;
+    if (ej->popup) do_popdown (ej);
     ej->popup = gtk_menu_new ();
-    GtkWidget *item1 = gtk_menu_item_new_with_label (str1);
-    gtk_widget_set_sensitive (item1, FALSE);
-    gtk_menu_append (GTK_MENU (ej->popup), item1);
-    GtkWidget *item2 = gtk_menu_item_new_with_label (str2);
-    gtk_widget_set_sensitive (item2, FALSE);
-    gtk_menu_append (GTK_MENU (ej->popup), item2);
+    item = gtk_menu_item_new_with_label (str1);
+    gtk_widget_set_sensitive (item, FALSE);
+    gtk_menu_append (GTK_MENU (ej->popup), item);
+    item = gtk_menu_item_new_with_label (str2);
+    gtk_widget_set_sensitive (item, FALSE);
+    gtk_menu_append (GTK_MENU (ej->popup), item);
     gtk_widget_show_all (ej->popup);
     gtk_menu_popup (GTK_MENU (ej->popup), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
 }
@@ -608,6 +610,7 @@ static void do_popdown (EjecterPlugin *ej)
 {
     gtk_menu_popdown (GTK_MENU (ej->popup));
     gtk_widget_destroy (ej->popup);
+    ej->popup = NULL;
 }
 
 static void verify_menu (EjecterPlugin *ej)
@@ -702,9 +705,10 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     
     /* Create and populate the menu */
     ej->menu = gtk_menu_new ();
-    
     load_devices (ej);
-    
+
+    ej->popup = NULL;
+
     g_signal_connect (ej->monitor, "volume_added", G_CALLBACK (handle_manage_volume), ej);
     g_signal_connect (ej->monitor, "mount_added", G_CALLBACK (handle_manage_mount), ej);
 
