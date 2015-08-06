@@ -636,7 +636,7 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
     {
-        if (ej->menu) 
+        if (ej->menu && g_hash_table_size (ej->devices)) 
         {
             verify_menu (ej);
             gtk_widget_show_all (GTK_WIDGET (ej->menu));
