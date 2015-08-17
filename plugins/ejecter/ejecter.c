@@ -28,6 +28,7 @@ typedef struct {
     config_setting_t *settings;     /* Plugin settings */
     GtkWidget *menu;
     GtkWidget *popup;
+    GtkWidget *empty;
     GHashTable *devices;
     GSList *invalid_devices;
     GduPool *pool;
@@ -433,6 +434,7 @@ static void manage_drive (EjecterPlugin *data, GDrive *drive)
     EjecterDevice *d = device_new (drive, gdu_dev, data);
     d->drive_id = id;
     g_hash_table_insert (data->devices, id, d);
+    if (g_hash_table_size (data->devices) == 1) gtk_container_remove (GTK_CONTAINER (data->menu), data->empty);
     device_attach (d, GTK_MENU (data->menu));
 }
 
@@ -525,10 +527,7 @@ static void handle_removed (EjecterDevice *dev)
     EjecterPlugin *data = dev->plugin;
     if (dev->drive_id) g_hash_table_remove (data->devices, dev->drive_id);
 
-    if (g_hash_table_size (data->devices) == 0)
-    {
-        if (gtk_widget_get_visible (data->menu)) gtk_menu_popdown (GTK_MENU (data->menu));
-    }
+    if (g_hash_table_size (data->devices) == 0) gtk_menu_append (data->menu, data->empty);
 
     GSList *iter;
     for (iter = dev->mounts; iter != NULL; iter = g_slist_next (iter))
@@ -624,6 +623,7 @@ static void verify_menu (EjecterPlugin *ej)
         {
             DEBUG ("Removing spurious table entry\n");
             g_hash_table_remove (ej->devices, dev->drive_id);
+            if (g_hash_table_size (ej->devices) == 0) gtk_menu_append (ej->menu, ej->empty);
             gtk_widget_destroy (dev->icon);
             gtk_widget_destroy (dev->menuitem);
             g_free (dev);
@@ -639,7 +639,7 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
     {
-        if (ej->menu && g_hash_table_size (ej->devices)) 
+        if (ej->menu)
         {
             verify_menu (ej);
             gtk_widget_show_all (GTK_WIDGET (ej->menu));
@@ -705,6 +705,9 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     
     /* Create and populate the menu */
     ej->menu = gtk_menu_new ();
+    ej->empty = gtk_menu_item_new_with_label (_("No ejectable devices"));
+    gtk_widget_set_sensitive (ej->empty, FALSE);
+    gtk_menu_append (ej->menu, ej->empty);
     load_devices (ej);
 
     ej->popup = NULL;
