@@ -4,8 +4,8 @@
 #include <string.h>
 #include <glib/gi18n.h>
 
-#define GDU_API_IS_SUBJECT_TO_CHANGE
-#include <gdu/gdu.h>
+//#define GDU_API_IS_SUBJECT_TO_CHANGE
+//#include <gdu/gdu.h>
 #include <gio/gio.h>
 
 #include "config.h"
@@ -31,7 +31,7 @@ typedef struct {
     GtkWidget *empty;
     GHashTable *devices;
     GSList *invalid_devices;
-    GduPool *pool;
+    //GduPool *pool;
     GVolumeMonitor *monitor;
 } EjecterPlugin;
 
@@ -43,7 +43,7 @@ typedef struct {
 typedef struct {
     EjecterPlugin *plugin;
     GDrive *drive;
-    GduDevice *device;
+    //GduDevice *device;
     GSList *volumes;
     GSList *mounts;
     GtkWidget *icon;
@@ -63,7 +63,8 @@ typedef struct {
 
 /* Prototypes */
 
-static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin);
+//static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin);
+static EjecterDevice *device_new (GDrive *drive, EjecterPlugin *plugin);
 static void device_update_label (EjecterDevice *dev);
 static void device_attach (EjecterDevice *dev, GtkMenu *menu);
 static void device_remove (EjecterDevice *dev);
@@ -128,7 +129,8 @@ static void hash_dump (EjecterPlugin *data)
 
 /* Function definitions */
 
-static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin)
+//static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin)
+static EjecterDevice *device_new (GDrive *drive, EjecterPlugin *plugin)
 {
     EjecterDevice *d = g_malloc (sizeof (EjecterDevice));
 
@@ -141,7 +143,7 @@ static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugi
     d->mount_count = 0;
 
     d->drive = drive;
-    d->device = device;
+    //d->device = device;
 
     d->volumes = NULL;
     d->mounts = NULL;
@@ -169,8 +171,9 @@ static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugi
     gtk_widget_show_all (d->menuitem);
     g_signal_connect (d->menuitem, "activate", G_CALLBACK (device_handle_clicked_eject), d);
 
-    if (gdu_device_is_optical_disc (device)) device_set_mounted (d, TRUE);
-    else device_set_mounted (d, FALSE);
+    //if (gdu_device_is_optical_disc (device)) device_set_mounted (d, TRUE);
+    //else device_set_mounted (d, FALSE);
+    device_set_mounted (d, FALSE);  //!!!!
 
     g_signal_connect (drive, "disconnected", G_CALLBACK (device_handle_removed_drive), d);
 
@@ -233,7 +236,8 @@ static void device_remove (EjecterDevice *dev)
 
 static void device_set_mounted (EjecterDevice *dev, gboolean mounted)
 {
-    gboolean mnt = (mounted || gdu_device_is_optical_disc (dev->device));
+    //gboolean mnt = (mounted || gdu_device_is_optical_disc (dev->device));
+    gboolean mnt = mounted; //!!!!
     if (dev->menuitem) gtk_widget_set_sensitive (dev->menuitem, mnt);
 }
 
@@ -242,7 +246,8 @@ static void device_handle_clicked_eject (GtkWidget *widget, gpointer ptr)
     EjecterDevice *d = (EjecterDevice *) ptr;
     GMountOperation *op = gtk_mount_operation_new (NULL);
     d->was_ejected = TRUE;
-    if (gdu_device_is_removable (d->device) && g_drive_can_eject (d->drive))
+    //if (gdu_device_is_removable (d->device) && g_drive_can_eject (d->drive))
+    if (g_drive_is_media_removable (d->drive) && g_drive_can_eject (d->drive))
     {
         DEBUG ("Eject: %s\n", g_drive_get_name (d->drive));
         g_drive_eject_with_operation (d->drive, G_MOUNT_UNMOUNT_NONE, op, NULL, device_eject_done, d);
@@ -424,14 +429,15 @@ static void manage_drive (EjecterPlugin *data, GDrive *drive)
     }
     DEBUG ("Drive id: %s\n", id);
     
-    GduDevice *gdu_dev = gdu_pool_get_by_device_file (data->pool, id);
-    if (gdu_device_is_system_internal (gdu_dev))
-    {
-        DEBUG ("Device is internal: skip\n");
-        data->invalid_devices = g_slist_append (data->invalid_devices, id);
-        return;
-    }
-    EjecterDevice *d = device_new (drive, gdu_dev, data);
+    //GduDevice *gdu_dev = gdu_pool_get_by_device_file (data->pool, id);
+    //if (gdu_device_is_system_internal (gdu_dev))
+    //{
+    //    DEBUG ("Device is internal: skip\n");
+    //    data->invalid_devices = g_slist_append (data->invalid_devices, id);
+    //    return;
+    //}
+    //EjecterDevice *d = device_new (drive, gdu_dev, data);
+    EjecterDevice *d = device_new (drive, data); //!!!!
     d->drive_id = id;
     g_hash_table_insert (data->devices, id, d);
     if (g_hash_table_size (data->devices) == 1) gtk_container_remove (GTK_CONTAINER (data->menu), data->empty);
@@ -697,7 +703,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     gtk_container_add (GTK_CONTAINER(p), ej->tray_icon);
     
     /* Initialise data structures */
-    ej->pool = gdu_pool_new ();
+    //ej->pool = gdu_pool_new ();
     ej->monitor = g_volume_monitor_get ();
 
     ej->devices = g_hash_table_new (g_str_hash, g_str_equal);
