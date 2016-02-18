@@ -13,7 +13,7 @@
 
 #define ICON_BUTTON_TRIM 4
 
-#define DEBUG_ON
+//#define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) printf(fmt,##args)
 #else
@@ -95,6 +95,8 @@ static void dev_dump (EjecterDevice *dev)
     printf ("\nDevice\n");
     if (dev->name) printf ("Device name %s\n", dev->name);
     else printf ("Null device name\n");
+    if (dev->drive_id) printf ("Local drive ID %s\n", dev->drive_id);
+    else printf ("Null local drive ID\n");
     if (dev->drive)
     {
         if (g_drive_get_identifier (dev->drive, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE)) printf ("Drive ID %s\n", g_drive_get_identifier (dev->drive, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE));
@@ -225,11 +227,10 @@ static void device_remove (EjecterDevice *dev)
 {
     if (!dev) return;
     if (dev->was_removed) return;
-    gtk_container_remove (GTK_CONTAINER (dev->menu), dev->menuitem);
-    gtk_widget_destroy (dev->icon);
-    dev->icon = NULL;
-    gtk_widget_destroy (dev->menuitem);
-    dev->menuitem = NULL;
+    if (dev->menuitem) gtk_container_remove (GTK_CONTAINER (dev->menu), dev->menuitem);
+    g_signal_handlers_disconnect_matched (dev->drive, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_removed_drive), NULL);
+	dev->menuitem = NULL;
+	dev->icon = NULL;
     dev->was_removed = TRUE;
     handle_removed (dev);
 }
@@ -286,6 +287,7 @@ static void device_handle_unmounted (GtkWidget *widget, gpointer ptr)
         device_set_mounted (dev, FALSE);
         if (!dev->was_ejected)   // deal with occasional lack of device_handle_removed_device
         {
+            dev->was_ejected = TRUE; //!!!!
             if (dev->volume_count && dev->volumes)
             {
                 GSList *iter;
@@ -309,7 +311,9 @@ static void device_handle_removed_drive (GtkWidget *widget, gpointer ptr)
 {
     EjecterDevice *dev = (EjecterDevice *) ptr;
 
-    DEBUG ("\nDRIVE REMOVED %s\n", dev->name);
+	DEBUG ("\nDRIVE REMOVED %s\n", dev->name);
+
+    if (dev->mount_count == 0) dev->was_ejected = TRUE; //!!!!
 
     device_remove (dev);
 }
@@ -331,7 +335,11 @@ static void device_handle_removed_volume (GtkWidget *widget, gpointer ptr)
     }
     device_update_label (dev);
 
-    if (dev->volume_count == 0 && !dev->was_ejected) device_remove (dev);
+    if (dev->volume_count == 0 && !dev->was_ejected)
+    {
+		dev->was_ejected = TRUE;
+		device_remove (dev);
+	}
 }   
 
 static void device_add_volume (EjecterDevice *dev, GVolume *volume)
@@ -550,7 +558,7 @@ static void handle_removed (EjecterDevice *dev)
     if (!dev->was_ejected)
     {
         char buffer[128];
-        sprintf (buffer, _("%s was removed without ejecting"), dev->name);
+		sprintf (buffer, _("%s was removed without ejecting"), dev->name);
         do_popup (dev->plugin, buffer, _("Please use menu to eject before removal"));
     }
     else do_popdown (dev->plugin);
@@ -613,9 +621,12 @@ static void do_popup (EjecterPlugin *ej, char *str1, char *str2)
 
 static void do_popdown (EjecterPlugin *ej)
 {
-    gtk_menu_popdown (GTK_MENU (ej->popup));
-    gtk_widget_destroy (ej->popup);
-    ej->popup = NULL;
+    if (ej->popup)
+    {
+		gtk_menu_popdown (GTK_MENU (ej->popup));
+		gtk_widget_destroy (ej->popup);
+		ej->popup = NULL;
+	}
 }
 
 static void verify_menu (EjecterPlugin *ej)
