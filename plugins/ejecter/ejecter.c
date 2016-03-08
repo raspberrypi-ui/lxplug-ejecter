@@ -26,7 +26,6 @@ typedef struct {
     LXPanel *panel;                 /* Back pointer to panel */
     GtkWidget *tray_icon;           /* Displayed image */
     config_setting_t *settings;     /* Plugin settings */
-    GtkWidget *menu;
     GtkWidget *popup;
     GtkWidget *empty;
     GHashTable *devices;
@@ -50,10 +49,9 @@ typedef struct {
     GtkWidget *menuitem;
     GtkWidget *label;
     GtkWidget *eject;
-    GtkMenu *menu;
     gboolean was_removed;
-    gboolean icon_updated;
     gboolean was_ejected;
+    gboolean was_mounted;
     uint volume_count;
     uint mount_count;
     char *name;
@@ -65,14 +63,12 @@ typedef struct {
 
 //static EjecterDevice *device_new (GDrive *drive, GduDevice *device, EjecterPlugin *plugin);
 static EjecterDevice *device_new (GDrive *drive, EjecterPlugin *plugin);
-static void device_update_label (EjecterDevice *dev);
-static void device_attach (EjecterDevice *dev, GtkMenu *menu);
 static void device_remove (EjecterDevice *dev);
 static void device_set_mounted (EjecterDevice *dev, gboolean mounted);
-static void device_handle_clicked_eject (GtkWidget *widget, gpointer ptr);
-static void device_handle_unmounted (GtkWidget *widget, gpointer ptr);
-static void device_handle_removed_drive (GtkWidget *widget, gpointer ptr);
-static void device_handle_removed_volume (GtkWidget *widget, gpointer ptr);
+static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
+static void device_handle_mount_unmounted (GtkWidget *widget, gpointer ptr);
+static void device_handle_drive_disconnected (GtkWidget *widget, gpointer ptr);
+static void device_handle_volume_removed (GtkWidget *widget, gpointer ptr);
 static void device_add_volume (EjecterDevice *dev, GVolume *volume);
 static void device_add_mount (EjecterDevice *dev, GMount *mount); 
 static void device_eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
@@ -80,11 +76,11 @@ static void load_devices (EjecterPlugin *data);
 static void manage_drive (EjecterPlugin *data, GDrive *drive);
 static void manage_volume (EjecterPlugin *data, GVolume *volume);
 static void manage_mount (EjecterPlugin *data, GMount *mount);
-static void handle_manage_mount (GtkWidget *widget, GMount *mount, EjecterPlugin *data);
-static void handle_manage_volume (GtkWidget *widget, GVolume *volume, EjecterPlugin *data);
+static void device_handle_mount_added (GtkWidget *widget, GMount *mount, EjecterPlugin *data);
+static void device_handle_volume_added (GtkWidget *widget, GVolume *volume, EjecterPlugin *data);
 static void handle_unmounted (EjecterDevice *dev);
 static void handle_removed (EjecterDevice *dev);
-static void verify_menu (EjecterPlugin *ej);
+static void verify_devices (EjecterPlugin *ej);
 static void do_popup (EjecterPlugin *ej, char *str1, char *str2);
 static void do_popdown (EjecterPlugin *ej);
 
@@ -106,7 +102,7 @@ static void dev_dump (EjecterDevice *dev)
         else printf ("Drive exists; null drive name\n");
     }
     else printf ("Null drive\n");
-    printf ("Removed %d Icon %d Ejected %d\n", dev->was_removed, dev->icon_updated, dev->was_ejected);
+    printf ("Mounted %d Removed %d Ejected %d\n", dev->was_mounted, dev->was_removed, dev->was_ejected);
     printf ("Volumes %d Mounts %d \n", dev->volume_count, dev->mount_count);
     for (iter = dev->volumes; iter != NULL; iter = g_slist_next (iter))
         printf ("Volume name %s\n", g_volume_get_name (iter->data));
@@ -138,9 +134,9 @@ static EjecterDevice *device_new (GDrive *drive, EjecterPlugin *plugin)
 
     d->plugin = plugin;
 
+    d->was_mounted = FALSE;
     d->was_removed = FALSE;
     d->was_ejected = FALSE;
-    d->icon_updated = FALSE;
     d->volume_count = 0;
     d->mount_count = 0;
 
@@ -153,96 +149,30 @@ static EjecterDevice *device_new (GDrive *drive, EjecterPlugin *plugin)
     d->name = 0;
     d->description = 0;
 
-    d->menuitem = gtk_image_menu_item_new ();
-
-    GtkWidget *box = gtk_hbox_new (FALSE, 4);
-    gtk_container_add (GTK_CONTAINER (d->menuitem), box);
-
-    d->label = gtk_label_new (NULL);
-    gtk_label_set_text (GTK_LABEL (d->label), "");
-    gtk_misc_set_alignment (GTK_MISC (d->label), 0.0, 0.5);
-    gtk_box_pack_start (GTK_BOX (box), d->label, TRUE, TRUE, 0);
-
-    d->eject = gtk_image_new_from_icon_name ("media-eject", GTK_ICON_SIZE_BUTTON);
-    gtk_box_pack_start (GTK_BOX (box), d->eject, FALSE, FALSE, 0);
-
-    d->icon = gtk_image_new_from_gicon (g_drive_get_icon (drive), GTK_ICON_SIZE_BUTTON);
-    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (d->menuitem), TRUE);
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (d->menuitem), d->icon);
-
-    gtk_widget_show_all (d->menuitem);
-    g_signal_connect (d->menuitem, "activate", G_CALLBACK (device_handle_clicked_eject), d);
-
     //if (gdu_device_is_optical_disc (device)) device_set_mounted (d, TRUE);
     //else device_set_mounted (d, FALSE);
     device_set_mounted (d, FALSE);  //!!!!
 
-    g_signal_connect (drive, "disconnected", G_CALLBACK (device_handle_removed_drive), d);
+    g_signal_connect (drive, "disconnected", G_CALLBACK (device_handle_drive_disconnected), d);
 
     return d;
 }
 
-static void device_update_label (EjecterDevice *dev)
-{
-    char buffer[1024];
-    if (!dev->menuitem) return;
-    if (dev->volume_count == 0)
-    {
-        dev->name = g_drive_get_name (dev->drive);
-        dev->description = 0;
-        sprintf (buffer, "%s", dev->name);
-    }
-    else if (dev->volume_count == 1)
-    {
-        GVolume *v = g_slist_nth_data (dev->volumes, 0);
-        dev->name = g_drive_get_name (dev->drive);
-        dev->description = g_volume_get_name (v);
-        sprintf (buffer, "%s (%s)", dev->name, dev->description);
-    }
-    else
-    {
-        dev->name = g_drive_get_name (dev->drive);
-        sprintf (buffer, "%s (", dev->name);
-        GSList *iter;
-        gboolean first = TRUE;
-        for (iter = dev->volumes; iter != NULL; iter = g_slist_next (iter))
-        {
-            GVolume *v = iter->data;
-            if (first) first = FALSE;
-            else strcat (buffer, ", ");
-            if (g_volume_get_name (v)) strcat (buffer, g_volume_get_name (v));
-        }
-        strcat (buffer, ")");
-    }
-    gtk_label_set_text (GTK_LABEL (dev->label), buffer);
-}
-
-static void device_attach (EjecterDevice *dev, GtkMenu *menu)
-{
-    gtk_menu_append (menu, dev->menuitem);
-    dev->menu = menu;
-}    
-    
 static void device_remove (EjecterDevice *dev)
 {
     if (!dev) return;
     if (dev->was_removed) return;
-    if (dev->menuitem) gtk_container_remove (GTK_CONTAINER (dev->menu), dev->menuitem);
-    g_signal_handlers_disconnect_matched (dev->drive, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_removed_drive), NULL);
-	dev->menuitem = NULL;
-	dev->icon = NULL;
+    g_signal_handlers_disconnect_matched (dev->drive, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_drive_disconnected), NULL);
     dev->was_removed = TRUE;
     handle_removed (dev);
 }
 
 static void device_set_mounted (EjecterDevice *dev, gboolean mounted)
 {
-    //gboolean mnt = (mounted || gdu_device_is_optical_disc (dev->device));
-    gboolean mnt = mounted; //!!!!
-    if (dev->menuitem) gtk_widget_set_sensitive (dev->menuitem, mnt);
+    dev->was_mounted = mounted;
 }
 
-static void device_handle_clicked_eject (GtkWidget *widget, gpointer ptr)
+static void handle_eject_clicked (GtkWidget *widget, gpointer ptr)
 {
     EjecterDevice *d = (EjecterDevice *) ptr;
     GMountOperation *op = gtk_mount_operation_new (NULL);
@@ -266,13 +196,14 @@ static void device_handle_clicked_eject (GtkWidget *widget, gpointer ptr)
     } 
 }
 
-static void device_handle_unmounted (GtkWidget *widget, gpointer ptr)
+static void device_handle_mount_unmounted (GtkWidget *widget, gpointer ptr)
 {   
     GMount *mount = G_MOUNT (widget);
     EjecterDevice *dev = (EjecterDevice *) ptr;
 
     DEBUG ("\nDEVICE UNMOUNTED %s\n", dev->name);
 
+    do_popdown (dev->plugin);
     if (!dev) return;
     if (!mount) return;
 
@@ -294,7 +225,7 @@ static void device_handle_unmounted (GtkWidget *widget, gpointer ptr)
                 for (iter = dev->volumes; iter != NULL; iter = g_slist_next (iter))
                 {
                     GVolume *v = iter->data;
-                    g_signal_handlers_disconnect_matched (v, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_removed_volume), NULL);
+                    g_signal_handlers_disconnect_matched (v, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_volume_removed), NULL);
                 }
                 g_slist_free (dev->volumes);
                 dev->volume_count = 0;
@@ -303,28 +234,28 @@ static void device_handle_unmounted (GtkWidget *widget, gpointer ptr)
         }
         handle_unmounted (dev);
     }
-
-    device_update_label (dev);
 }   
 
-static void device_handle_removed_drive (GtkWidget *widget, gpointer ptr)
+static void device_handle_drive_disconnected (GtkWidget *widget, gpointer ptr)
 {
     EjecterDevice *dev = (EjecterDevice *) ptr;
 
 	DEBUG ("\nDRIVE REMOVED %s\n", dev->name);
 
+    do_popdown (dev->plugin);
     if (dev->mount_count == 0) dev->was_ejected = TRUE; //!!!!
 
     device_remove (dev);
 }
 
-static void device_handle_removed_volume (GtkWidget *widget, gpointer ptr)
+static void device_handle_volume_removed (GtkWidget *widget, gpointer ptr)
 {
     GVolume *volume = G_VOLUME (widget);
     EjecterDevice *dev = (EjecterDevice *) ptr;
 
     DEBUG ("\nVOLUME REMOVED %s\n", g_volume_get_name (volume));
 
+    do_popdown (dev->plugin);
     if (!dev) return;
     if (!volume) return;
 
@@ -333,7 +264,6 @@ static void device_handle_removed_volume (GtkWidget *widget, gpointer ptr)
         dev->volumes = g_slist_remove (dev->volumes, volume);
         dev->volume_count = g_slist_length (dev->volumes);
     }
-    device_update_label (dev);
 
     if (dev->volume_count == 0 && !dev->was_ejected)
     {
@@ -347,14 +277,7 @@ static void device_add_volume (EjecterDevice *dev, GVolume *volume)
     dev->volumes = g_slist_prepend (dev->volumes, volume);
     dev->volume_count = g_slist_length (dev->volumes);
 
-    g_signal_connect (volume, "removed", G_CALLBACK (device_handle_removed_volume), dev);
-    if (!dev->icon_updated)
-    {
-        gtk_image_set_from_gicon (GTK_IMAGE (dev->icon), g_volume_get_icon (volume), GTK_ICON_SIZE_BUTTON);
-        dev->icon_updated = TRUE;
-    }
-
-    device_update_label (dev);
+    g_signal_connect (volume, "removed", G_CALLBACK (device_handle_volume_removed), dev);
 }
 
 static void device_add_mount (EjecterDevice *dev, GMount *mount)    
@@ -366,8 +289,7 @@ static void device_add_mount (EjecterDevice *dev, GMount *mount)
     dev->mount_count = g_slist_length (dev->mounts);
 
     device_set_mounted (dev, TRUE);
-    g_signal_connect (mount, "unmounted", G_CALLBACK (device_handle_unmounted), dev);
-    device_update_label (dev);
+    g_signal_connect (mount, "unmounted", G_CALLBACK (device_handle_mount_unmounted), dev);
 }    
 
 static void device_eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr)
@@ -390,7 +312,6 @@ static void device_eject_done (GObject *source_object, GAsyncResult *res, gpoint
     DEBUG ("Backup eject called\n");
     device_set_mounted (dev, FALSE);
     handle_unmounted (dev);
-    device_update_label (dev);
 }
 
 /* Ejecter functions */
@@ -448,8 +369,6 @@ static void manage_drive (EjecterPlugin *data, GDrive *drive)
     EjecterDevice *d = device_new (drive, data); //!!!!
     d->drive_id = id;
     g_hash_table_insert (data->devices, id, d);
-    if (g_hash_table_size (data->devices) == 1) gtk_container_remove (GTK_CONTAINER (data->menu), data->empty);
-    device_attach (d, GTK_MENU (data->menu));
 }
 
 static void manage_volume (EjecterPlugin *data, GVolume *volume)
@@ -510,13 +429,15 @@ static void manage_mount (EjecterPlugin *data, GMount *mount)
     device_add_mount (dev, mount);
 }
 
-static void handle_manage_volume (GtkWidget *widget, GVolume *volume, EjecterPlugin *data)
+static void device_handle_volume_added (GtkWidget *widget, GVolume *volume, EjecterPlugin *data)
 {
+    do_popdown (data);
     manage_volume (data, volume);
 }
 
-static void handle_manage_mount (GtkWidget *widget, GMount *mount, EjecterPlugin *data)
+static void device_handle_mount_added (GtkWidget *widget, GMount *mount, EjecterPlugin *data)
 {
+    do_popdown (data);
     manage_mount (data, mount);
 }
 
@@ -541,18 +462,16 @@ static void handle_removed (EjecterDevice *dev)
     EjecterPlugin *data = dev->plugin;
     if (dev->drive_id) g_hash_table_remove (data->devices, dev->drive_id);
 
-    if (g_hash_table_size (data->devices) == 0) gtk_menu_append (data->menu, data->empty);
-
     GSList *iter;
     for (iter = dev->mounts; iter != NULL; iter = g_slist_next (iter))
     {
         GMount *m = iter->data;
-        g_signal_handlers_disconnect_matched (m, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_unmounted), NULL);
+        g_signal_handlers_disconnect_matched (m, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_mount_unmounted), NULL);
     }
     for (iter = dev->volumes; iter != NULL; iter = g_slist_next (iter))
     {
         GVolume *v = iter->data;
-        g_signal_handlers_disconnect_matched (v, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_removed_volume), NULL);
+        g_signal_handlers_disconnect_matched (v, G_SIGNAL_MATCH_FUNC, 0, 0, NULL, G_CALLBACK (device_handle_volume_removed), NULL);
     }
 
     if (!dev->was_ejected)
@@ -598,7 +517,6 @@ static void set_icon (LXPanel *p, GtkWidget *image, const char *icon, int size)
 static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data)
 {
     EjecterPlugin * ej = (EjecterPlugin *) data;
-
     /* Determine the coordinates. */
     lxpanel_plugin_popup_set_position_helper(ej->panel, ej->plugin, GTK_WIDGET(menu), px, py);
     *push_in = TRUE;
@@ -629,7 +547,7 @@ static void do_popdown (EjecterPlugin *ej)
 	}
 }
 
-static void verify_menu (EjecterPlugin *ej)
+static void verify_devices (EjecterPlugin *ej)
 {
     // this is a brutal belt-and-braces sanity check for rogue devices that have failed to eject properly....
     GList *iter, *keys = g_hash_table_get_keys (ej->devices);
@@ -640,12 +558,67 @@ static void verify_menu (EjecterPlugin *ej)
         {
             DEBUG ("Removing spurious table entry\n");
             g_hash_table_remove (ej->devices, dev->drive_id);
-            if (g_hash_table_size (ej->devices) == 0) gtk_menu_append (ej->menu, ej->empty);
-            gtk_widget_destroy (dev->icon);
-            gtk_widget_destroy (dev->menuitem);
             g_free (dev);
         }
     }
+}
+
+static void create_menuitem (EjecterDevice *d)
+{
+    char buffer[1024];
+    GVolume *v;
+    d->menuitem = gtk_image_menu_item_new ();
+
+    GtkWidget *box = gtk_hbox_new (FALSE, 4);
+    gtk_container_add (GTK_CONTAINER (d->menuitem), box);
+
+    d->label = gtk_label_new (NULL);
+    gtk_label_set_max_width_chars (GTK_LABEL (d->label), 40);
+    gtk_label_set_ellipsize (GTK_LABEL (d->label), PANGO_ELLIPSIZE_END);
+    if (d->volume_count == 0)
+    {
+        d->name = g_drive_get_name (d->drive);
+        d->description = 0;
+        sprintf (buffer, "%s", d->name);
+        d->icon = gtk_image_new_from_gicon (g_drive_get_icon (d->drive), GTK_ICON_SIZE_BUTTON);
+    }
+    else if (d->volume_count == 1)
+    {
+        v = g_slist_nth_data (d->volumes, 0);
+        d->name = g_drive_get_name (d->drive);
+        d->description = g_volume_get_name (v);
+        sprintf (buffer, "%s (%s)", d->name, d->description);
+        d->icon = gtk_image_new_from_gicon (g_volume_get_icon (v), GTK_ICON_SIZE_BUTTON);
+    }
+    else
+    {
+        d->name = g_drive_get_name (d->drive);
+        sprintf (buffer, "%s (", d->name);
+        GSList *iter;
+        gboolean first = TRUE;
+        for (iter = d->volumes; iter != NULL; iter = g_slist_next (iter))
+        {
+            v = iter->data;
+            if (first) first = FALSE;
+            else strcat (buffer, ", ");
+            if (g_volume_get_name (v)) strcat (buffer, g_volume_get_name (v));
+        }
+        strcat (buffer, ")");
+        d->icon = gtk_image_new_from_gicon (g_volume_get_icon (v), GTK_ICON_SIZE_BUTTON);
+    }
+    gtk_label_set_text (GTK_LABEL (d->label), buffer);
+    gtk_misc_set_alignment (GTK_MISC (d->label), 0.0, 0.5);
+    gtk_box_pack_start (GTK_BOX (box), d->label, TRUE, TRUE, 0);
+
+    d->eject = gtk_image_new_from_icon_name ("media-eject", GTK_ICON_SIZE_BUTTON);
+    gtk_box_pack_start (GTK_BOX (box), d->eject, FALSE, FALSE, 0);
+
+    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (d->menuitem), TRUE);
+    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (d->menuitem), d->icon);
+    gtk_widget_set_sensitive (d->menuitem, d->was_mounted);
+
+    gtk_widget_show_all (d->menuitem);
+    g_signal_connect (d->menuitem, "activate", G_CALLBACK (handle_eject_clicked), d);
 }
 
 /* Handler for menu button click */
@@ -656,12 +629,38 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
     {
-        if (ej->menu)
+        /* Hide the popup if already shown */
+        if (ej->popup)
         {
-            verify_menu (ej);
-            gtk_widget_show_all (GTK_WIDGET (ej->menu));
-            gtk_menu_popup (GTK_MENU (ej->menu), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
+            gtk_menu_popdown (GTK_MENU (ej->popup));
+            gtk_widget_destroy (ej->popup);
+            ej->popup = NULL;
         }
+
+        verify_devices (ej);
+        ej->popup = gtk_menu_new ();
+
+        /* Loop through all devices, creating menuitems for them */
+        int count = 0;
+        GList *iter, *keys = g_hash_table_get_keys (ej->devices);
+        for (iter = keys; iter != NULL; iter = g_list_next (iter))
+        {
+            EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
+            create_menuitem (dev);
+            gtk_menu_append (ej->popup, dev->menuitem);
+            count++;
+        }
+
+        /* If no devices were found, create the "empty" menuitem */
+        if (!count) 
+        {
+            ej->empty = gtk_menu_item_new_with_label (_("No ejectable devices"));
+            gtk_widget_set_sensitive (ej->empty, FALSE);
+            gtk_menu_append (ej->popup, ej->empty);
+        }
+
+        gtk_widget_show_all (ej->popup);
+        gtk_menu_popup (GTK_MENU (ej->popup), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
         return TRUE;
     }
     else return FALSE;
@@ -720,17 +719,13 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     ej->devices = g_hash_table_new (g_str_hash, g_str_equal);
     ej->invalid_devices = NULL;
     
-    /* Create and populate the menu */
-    ej->menu = gtk_menu_new ();
-    ej->empty = gtk_menu_item_new_with_label (_("No ejectable devices"));
-    gtk_widget_set_sensitive (ej->empty, FALSE);
-    gtk_menu_append (ej->menu, ej->empty);
+    /* Read in current devices */
     load_devices (ej);
 
     ej->popup = NULL;
 
-    g_signal_connect (ej->monitor, "volume_added", G_CALLBACK (handle_manage_volume), ej);
-    g_signal_connect (ej->monitor, "mount_added", G_CALLBACK (handle_manage_mount), ej);
+    g_signal_connect (ej->monitor, "volume_added", G_CALLBACK (device_handle_volume_added), ej);
+    g_signal_connect (ej->monitor, "mount_added", G_CALLBACK (device_handle_mount_added), ej);
 
     /* Show the widget, and return. */
     gtk_widget_show_all (p);
