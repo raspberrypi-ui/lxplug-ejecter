@@ -186,6 +186,7 @@ static EjecterDevice *new_device (GDrive *drive, EjecterPlugin *plugin)
 
     d->name = NULL;
     d->description = NULL;
+    d->drive_id = NULL;
 
     g_signal_connect (drive, "disconnected", G_CALLBACK (handle_drive_disconnected), d);
 
@@ -220,6 +221,7 @@ static void new_drive (EjecterPlugin *data, GDrive *drive)
     DEBUG ("Drive id: %s\n", id);
     
     EjecterDevice *d = new_device (drive, data);
+    d->name = g_drive_get_name (drive);
     d->drive_id = id;
     g_hash_table_insert (data->devices, id, d);
 }
