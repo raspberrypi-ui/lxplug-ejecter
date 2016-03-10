@@ -152,7 +152,8 @@ static void verify_devices (EjecterPlugin *ej)
         {
             DEBUG ("Removing spurious table entry\n");
             g_hash_table_remove (ej->devices, dev->drive_id);
-            g_free (dev);
+            dev->was_ejected = TRUE;
+            device_remove (dev);
         }
     }
 }
@@ -482,6 +483,7 @@ static void remove_done (EjecterDevice *dev)
     else hide_message (dev->plugin);
 
     g_free (dev);
+    dev = NULL;
 }
 
 /* Ejecter functions */
@@ -538,9 +540,12 @@ static void show_menu (EjecterPlugin *ej)
     for (iter = keys; iter != NULL; iter = g_list_next (iter))
     {
         EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
-        create_menuitem (dev);
-        gtk_menu_append (ej->menu, dev->menuitem);
-        count++;
+        if (dev)
+        {
+            create_menuitem (dev);
+            gtk_menu_append (ej->menu, dev->menuitem);
+            count++;
+        }
     }
 
     /* If no devices were found, create the "empty" menuitem */
