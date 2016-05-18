@@ -158,7 +158,7 @@ static void verify_devices (EjecterPlugin *ej)
         EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
         if (access (dev->drive_id, F_OK) == -1)
         {
-            DEBUG ("Removing spurious table entry\n");
+            DEBUG ("Removing spurious table entry");
             g_hash_table_remove (ej->devices, dev->drive_id);
             dev->was_ejected = TRUE;
             device_remove (dev);
@@ -204,30 +204,30 @@ static EjecterDevice *new_device (GDrive *drive, EjecterPlugin *plugin)
 
 static void new_drive (EjecterPlugin *data, GDrive *drive)
 {
-    DEBUG ("\nNEW DRIVE\n");
+    DEBUG ("NEW DRIVE");
 
     if (drive == NULL)
     {
-        DEBUG ("Drive passed was null, skipping\n");
+        DEBUG ("Drive passed was null, skipping");
         return;
     }
     char *id = g_drive_get_identifier (drive, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE);
     if (id == NULL)
     {
-        DEBUG ("No id\n");
+        DEBUG ("No id");
         return;
     }
     if (g_slist_index (data->invalid_devices, id) != -1)
     {
-        DEBUG ("Skipped drive (in invalid list)\n");
+        DEBUG ("Skipped drive (in invalid list)");
         return;
     }
     if (g_hash_table_lookup (data->devices, id) != NULL)
     {
-        DEBUG ("Skipped drive (already in list)\n");
+        DEBUG ("Skipped drive (already in list)");
         return;
     }
-    DEBUG ("Drive id: %s\n", id);
+    DEBUG ("Drive id: %s", id);
     
     EjecterDevice *d = new_device (drive, data);
     d->name = g_drive_get_name (drive);
@@ -237,25 +237,25 @@ static void new_drive (EjecterPlugin *data, GDrive *drive)
 
 static void new_volume (EjecterPlugin *data, GVolume *volume)
 {
-    DEBUG ("\nNEW VOLUME\n");   
+    DEBUG ("NEW VOLUME");
 
     if (volume == NULL)
     {
-        DEBUG ("Volume was null, skipping\n");
+        DEBUG ("Volume was null, skipping");
         return;
     }
     GDrive *drive = g_volume_get_drive (volume);
     if (drive == NULL)
     {
-        DEBUG ("Volume did not have a drive, skipping\n");
+        DEBUG ("Volume did not have a drive, skipping");
         return;
     }
     char *id = g_drive_get_identifier (drive, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE);
     if (id == NULL) return;
     if (g_slist_index (data->invalid_devices, id) != -1) return;
     
-    DEBUG ("Drive id: %s\n", id);
-    DEBUG ("Volume name: %s\n", g_volume_get_name (volume));
+    DEBUG ("Drive id: %s", id);
+    DEBUG ("Volume name: %s", g_volume_get_name (volume));
         
     EjecterDevice *dev = g_hash_table_lookup (data->devices, id);
     if (dev == NULL) 
@@ -269,24 +269,24 @@ static void new_volume (EjecterPlugin *data, GVolume *volume)
 
 static void new_mount (EjecterPlugin *data, GMount *mount)
 {
-    DEBUG ("\nNEW MOUNT\n");
+    DEBUG ("NEW MOUNT");
 
     if (mount == NULL)
     {
-        DEBUG ("Mount was null, skipping\n");
+        DEBUG ("Mount was null, skipping");
         return;
     }
     GDrive *drive = g_mount_get_drive (mount);
     if (drive == NULL)
     {
-        DEBUG ("Mount did not have a drive, skipping\n");
+        DEBUG ("Mount did not have a drive, skipping");
         return;
     }
     char *id = g_drive_get_identifier (drive, G_VOLUME_IDENTIFIER_KIND_UNIX_DEVICE);
     if (id == NULL) return;
     
-    DEBUG ("Mount id: %s\n", id);
-    DEBUG ("Mount name: %s\n", g_mount_get_name (mount));
+    DEBUG ("Mount id: %s", id);
+    DEBUG ("Mount name: %s", g_mount_get_name (mount));
       
     EjecterDevice *dev = g_hash_table_lookup (data->devices, id);
     if (dev == NULL) return;
@@ -322,7 +322,7 @@ static void handle_mount_unmounted (GtkWidget *widget, gpointer ptr)
     EjecterDevice *dev = (EjecterDevice *) ptr;
     EjecterPlugin *data = dev->plugin;
 
-    DEBUG ("\nDEVICE UNMOUNTED %s\n", dev->name);
+    DEBUG ("DEVICE UNMOUNTED %s", dev->name);
 
     if (!dev) return;
     if (!mount) return;
@@ -358,7 +358,7 @@ static void handle_volume_removed (GtkWidget *widget, gpointer ptr)
     EjecterDevice *dev = (EjecterDevice *) ptr;
     EjecterPlugin *data = dev->plugin;
 
-    DEBUG ("\nVOLUME REMOVED %s\n", g_volume_get_name (volume));
+    DEBUG ("VOLUME REMOVED %s", g_volume_get_name (volume));
 
     if (!dev) return;
     if (!volume) return;
@@ -385,7 +385,7 @@ static void handle_drive_disconnected (GtkWidget *widget, gpointer ptr)
     EjecterDevice *dev = (EjecterDevice *) ptr;
     EjecterPlugin *data = dev->plugin;
 
-	DEBUG ("\nDRIVE REMOVED %s\n", dev->name);
+	DEBUG ("DRIVE REMOVED %s", dev->name);
 
     // if nothing on the drive is mounted, no need to warn about failure to eject
     if (dev->mount_count == 0) dev->was_ejected = TRUE;
@@ -401,12 +401,12 @@ static void handle_eject_clicked (GtkWidget *widget, gpointer ptr)
     d->was_ejected = TRUE;
     if (g_drive_is_media_removable (d->drive) && g_drive_can_eject (d->drive))
     {
-        DEBUG ("Eject: %s\n", g_drive_get_name (d->drive));
+        DEBUG ("Eject: %s", g_drive_get_name (d->drive));
         g_drive_eject_with_operation (d->drive, G_MOUNT_UNMOUNT_NONE, op, NULL, eject_done, d);
     }
     else
     {
-        DEBUG ("Unmount: %s\n", g_drive_get_name (d->drive));
+        DEBUG ("Unmount: %s", g_drive_get_name (d->drive));
         GList *iter;
         for (iter = g_drive_get_volumes (d->drive); iter != NULL; iter = g_list_next (iter))
         {
@@ -419,7 +419,7 @@ static void handle_eject_clicked (GtkWidget *widget, gpointer ptr)
 
 static void device_remove (EjecterDevice *dev)
 {
-    DEBUG ("\nREMOVED %s\n", dev->name);
+    DEBUG ("REMOVED %s", dev->name);
 
     if (!dev) return;
     if (dev->was_removed) return;
@@ -459,7 +459,7 @@ static void device_remove (EjecterDevice *dev)
 
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr)
 {
-    DEBUG ("\nEJECT COMPLETE\n");
+    DEBUG ("EJECT COMPLETE");
 
     EjecterDevice *dev = (EjecterDevice *) ptr;
 
@@ -475,7 +475,7 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr)
     }
     else return;
 
-    DEBUG ("Backup eject called\n");
+    DEBUG ("Backup eject called");
     unmount_done (dev);
 }
 
@@ -483,7 +483,7 @@ static void unmount_done (EjecterDevice *dev)
 {
     if (!dev->was_removed)
     {
-        DEBUG ("\nUNMOUNTED %s\n", dev->name);
+        DEBUG ("UNMOUNTED %s", dev->name);
 
         char buffer[128];
         sprintf (buffer, _("%s has been ejected"), dev->name);
