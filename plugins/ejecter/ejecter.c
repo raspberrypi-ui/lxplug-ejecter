@@ -13,7 +13,7 @@
 
 //#define DEBUG_ON
 #ifdef DEBUG_ON
-#define DEBUG(fmt,args...) printf(fmt,##args)
+#define DEBUG(fmt,args...) g_message(fmt,##args)
 #else
 #define DEBUG
 #endif
@@ -27,6 +27,8 @@ typedef struct {
     GtkWidget *tray_icon;           /* Displayed image */
     config_setting_t *settings;     /* Plugin settings */
     GtkWidget *popup;               /* Popup message */
+    GtkWidget *alignment;           /* Alignment object in popup message */
+    GtkWidget *box;                 /* Vbox in popup message */
     GtkWidget *menu;                /* Popup menu */
     GtkWidget *empty;               /* Menuitem shown when no devices */
     GHashTable *devices;
@@ -74,6 +76,13 @@ static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
 static void device_remove (EjecterDevice *dev);
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
 static void unmount_done (EjecterDevice *dev);
+static void gtk_tooltip_window_style_set (EjecterPlugin *ej);
+static void draw_round_rect (cairo_t *cr, gdouble aspect, gdouble x, gdouble y, gdouble corner_radius, gdouble width, gdouble height);
+static void fill_background (GtkWidget *widget, cairo_t *cr, GdkColor *bg_color, GdkColor *border_color, guchar alpha);
+static void update_shape (EjecterPlugin *ej);
+static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej);
+static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data);
+static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
 static void hide_message (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
@@ -448,7 +457,6 @@ static void device_remove (EjecterDevice *dev)
     dev = NULL;
 }
 
-
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr)
 {
     DEBUG ("\nEJECT COMPLETE\n");
@@ -483,41 +491,158 @@ static void unmount_done (EjecterDevice *dev)
     }
 }
 
+/* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */
+/* manually cause a tooltip to appear with a simple function call. I have no idea why not... */
+
+static void gtk_tooltip_window_style_set (EjecterPlugin *ej)
+{
+    gtk_alignment_set_padding (GTK_ALIGNMENT (ej->alignment), ej->popup->style->ythickness, ej->popup->style->ythickness,
+        ej->popup->style->xthickness, ej->popup->style->xthickness);
+    gtk_box_set_spacing (GTK_BOX (ej->box), ej->popup->style->xthickness);
+    gtk_widget_queue_draw (ej->popup);
+}
+
+static void draw_round_rect (cairo_t *cr, gdouble aspect, gdouble x, gdouble y, gdouble corner_radius, gdouble width, gdouble height)
+{
+    gdouble radius = corner_radius / aspect;
+    cairo_move_to (cr, x + radius, y);
+    cairo_line_to (cr, x + width - radius, y);
+    cairo_arc (cr, x + width - radius, y + radius, radius, -90.0f * G_PI / 180.0f, 0.0f * G_PI / 180.0f);
+    cairo_line_to (cr, x + width, y + height - radius);
+    cairo_arc (cr, x + width - radius, y + height - radius, radius, 0.0f * G_PI / 180.0f, 90.0f * G_PI / 180.0f);
+    cairo_line_to (cr, x + radius, y + height);
+    cairo_arc (cr, x + radius, y + height - radius, radius,  90.0f * G_PI / 180.0f, 180.0f * G_PI / 180.0f);
+    cairo_line_to (cr, x, y + radius);
+    cairo_arc (cr, x + radius, y + radius, radius, 180.0f * G_PI / 180.0f, 270.0f * G_PI / 180.0f);
+    cairo_close_path (cr);
+}
+
+static void fill_background (GtkWidget *widget, cairo_t *cr, GdkColor *bg_color, GdkColor *border_color, guchar alpha)
+{
+    gint tooltip_radius;
+
+    if (!gtk_widget_is_composited (widget)) alpha = 255;
+
+    gtk_widget_style_get (widget, "tooltip-radius", &tooltip_radius,  NULL);
+
+    cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
+    cairo_paint (cr);
+    cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
+
+    draw_round_rect (cr, 1.0, 0.5, 0.5, tooltip_radius, widget->allocation.width - 1,  widget->allocation.height - 1);
+
+    cairo_set_source_rgba (cr, (float) bg_color->red / 65535.0, (float) bg_color->green / 65535.0, (float) bg_color->blue / 65535.0, (float) alpha / 255.0);
+    cairo_fill_preserve (cr);
+
+    cairo_set_source_rgba (cr, (float) border_color->red / 65535.0, (float) border_color->green / 65535.0, (float) border_color->blue / 65535.0, (float) alpha / 255.0);
+    cairo_set_line_width (cr, 1.0);
+    cairo_stroke (cr);
+}
+
+static void update_shape (EjecterPlugin *ej)
+{
+    GdkBitmap *mask;
+    cairo_t *cr;
+    gint width, height, tooltip_radius;
+
+    gtk_widget_style_get (ej->popup, "tooltip-radius", &tooltip_radius, NULL);
+
+    if (tooltip_radius == 0 || gtk_widget_is_composited (ej->popup))
+    {
+        gtk_widget_shape_combine_mask (ej->popup, NULL, 0, 0);
+        return;
+    }
+
+    gtk_window_get_size (GTK_WINDOW (ej->popup), &width, &height);
+    mask = (GdkBitmap *) gdk_pixmap_new (NULL, width, height, 1);
+    cr = gdk_cairo_create (mask);
+
+    fill_background (ej->popup, cr, &ej->popup->style->black, &ej->popup->style->black, 255);
+    gtk_widget_shape_combine_mask (ej->popup, mask, 0, 0);
+
+    cairo_destroy (cr);
+    g_object_unref (mask);
+}
+
+static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej)
+{
+    guchar tooltip_alpha;
+    gint tooltip_radius;
+
+    gtk_widget_style_get (ej->popup, "tooltip-alpha", &tooltip_alpha, "tooltip-radius", &tooltip_radius, NULL);
+
+    if (tooltip_alpha != 255 || tooltip_radius != 0)
+    {
+        cairo_t *cr = gdk_cairo_create (ej->popup->window);
+        fill_background (ej->popup, cr, &ej->popup->style->bg [GTK_STATE_NORMAL], &ej->popup->style->bg [GTK_STATE_SELECTED], tooltip_alpha);
+        cairo_destroy (cr);
+        update_shape (ej);
+    }
+    else gtk_paint_flat_box (ej->popup->style, ej->popup->window, GTK_STATE_NORMAL, GTK_SHADOW_OUT, NULL, ej->popup, "tooltip",
+        0, 0, ej->popup->allocation.width, ej->popup->allocation.height);
+
+    return FALSE;
+}
+
 /* Ejecter functions */
 
 static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data)
 {
-    EjecterPlugin * ej = (EjecterPlugin *) data;
+    EjecterPlugin *ej = (EjecterPlugin *) data;
     /* Determine the coordinates. */
-    lxpanel_plugin_popup_set_position_helper(ej->panel, ej->plugin, GTK_WIDGET(menu), px, py);
+    lxpanel_plugin_popup_set_position_helper (ej->panel, ej->plugin, GTK_WIDGET(menu), px, py);
     *push_in = TRUE;
+}
+
+static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej)
+{
+    gtk_widget_hide (ej->popup);
+    gdk_pointer_ungrab (GDK_CURRENT_TIME);
+    return FALSE;
 }
 
 static void show_message (EjecterPlugin *ej, char *str1, char *str2)
 {
     GtkWidget *item;
+    gint x, y;
 
     hide_menu (ej);
     hide_message (ej);
 
-    ej->popup = gtk_menu_new ();
-    item = gtk_menu_item_new_with_label (str1);
-    gtk_widget_set_sensitive (item, FALSE);
-    gtk_menu_append (GTK_MENU (ej->popup), item);
+    ej->popup = gtk_window_new (GTK_WINDOW_POPUP);
+    gtk_window_set_type_hint (GTK_WINDOW (ej->popup), GDK_WINDOW_TYPE_HINT_TOOLTIP);
+    gtk_widget_set_app_paintable (ej->popup, TRUE);
+    gtk_window_set_resizable (GTK_WINDOW (ej->popup), FALSE);
+    gtk_widget_set_name (ej->popup, "gtk-tooltip");
 
-    item = gtk_menu_item_new_with_label (str2);
-    gtk_widget_set_sensitive (item, FALSE);
-    gtk_menu_append (GTK_MENU (ej->popup), item);
+    ej->alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
+    gtk_container_add (GTK_CONTAINER (ej->popup), ej->alignment);
+    gtk_widget_show (ej->alignment);
+
+    g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
+    g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
+
+    ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
+    gtk_container_add (GTK_CONTAINER (ej->alignment), ej->box);
+
+    item = gtk_label_new (str1);
+    gtk_box_pack_start (GTK_BOX (ej->box), item, FALSE, FALSE, 0);
+    item = gtk_label_new (str2);
+    gtk_box_pack_start (GTK_BOX (ej->box), item, FALSE, FALSE, 0);
 
     gtk_widget_show_all (ej->popup);
-    gtk_menu_popup (GTK_MENU (ej->popup), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
+    gtk_widget_hide (ej->popup);
+    lxpanel_plugin_popup_set_position_helper (ej->panel, ej->tray_icon, ej->popup, &x, &y);
+    gdk_window_move (gtk_widget_get_window (ej->popup), x, y);
+    gtk_window_present (GTK_WINDOW (ej->popup));
+    gdk_pointer_grab (gtk_widget_get_window (ej->popup), TRUE, GDK_BUTTON_PRESS_MASK, NULL, NULL, GDK_CURRENT_TIME);
+    g_signal_connect (G_OBJECT(ej->popup), "button-press-event", G_CALLBACK (ejecter_mouse_out), ej);
 }
 
 static void hide_message (EjecterPlugin *ej)
 {
     if (ej->popup)
     {
-		gtk_menu_popdown (GTK_MENU (ej->popup));
 		gtk_widget_destroy (ej->popup);
 		ej->popup = NULL;
 	}
