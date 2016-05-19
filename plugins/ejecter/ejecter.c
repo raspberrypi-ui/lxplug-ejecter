@@ -13,7 +13,7 @@
 
 //#define DEBUG_ON
 #ifdef DEBUG_ON
-#define DEBUG(fmt,args...) g_message(fmt,##args)
+#define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
 #else
 #define DEBUG
 #endif
