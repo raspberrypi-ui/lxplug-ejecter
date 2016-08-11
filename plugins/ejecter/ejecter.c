@@ -739,7 +739,8 @@ static void create_menuitem (EjecterDevice *d)
     gtk_misc_set_alignment (GTK_MISC (d->label), 0.0, 0.5);
     gtk_box_pack_start (GTK_BOX (box), d->label, TRUE, TRUE, 0);
 
-    d->eject = gtk_image_new_from_icon_name ("media-eject", GTK_ICON_SIZE_BUTTON);
+    d->eject = gtk_image_new ();
+    set_icon (d->plugin->panel, d->eject, "media-eject", 16);
     gtk_box_pack_start (GTK_BOX (box), d->eject, FALSE, FALSE, 0);
 
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (d->menuitem), TRUE);
