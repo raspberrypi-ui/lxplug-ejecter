@@ -697,6 +697,7 @@ static void create_menuitem (EjecterDevice *d)
     char buffer[1024];
     GVolume *v;
     d->menuitem = gtk_image_menu_item_new ();
+    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (d->menuitem), TRUE);
 
     GtkWidget *box = gtk_hbox_new (FALSE, 4);
     gtk_container_add (GTK_CONTAINER (d->menuitem), box);
