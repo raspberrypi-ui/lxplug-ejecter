@@ -494,6 +494,19 @@ static void unmount_done (EjecterDevice *dev)
 /* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */
 /* manually cause a tooltip to appear with a simple function call. I have no idea why not... */
 
+static void on_screen_changed (GtkWidget *window)
+{
+	GdkScreen *screen;
+	GdkColormap *cmap;
+
+	screen = gtk_widget_get_screen (window);
+	cmap = NULL;
+	if (gdk_screen_is_composited (screen)) cmap = gdk_screen_get_rgba_colormap (screen);
+	if (cmap == NULL) cmap = gdk_screen_get_rgb_colormap (screen);
+
+	gtk_widget_set_colormap (window, cmap);
+}
+
 static void gtk_tooltip_window_style_set (EjecterPlugin *ej)
 {
     gtk_alignment_set_padding (GTK_ALIGNMENT (ej->alignment), ej->popup->style->ythickness, ej->popup->style->ythickness,
@@ -610,6 +623,7 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     hide_message (ej);
 
     ej->popup = gtk_window_new (GTK_WINDOW_POPUP);
+    on_screen_changed (ej->popup);
     gtk_window_set_type_hint (GTK_WINDOW (ej->popup), GDK_WINDOW_TYPE_HINT_TOOLTIP);
     gtk_widget_set_app_paintable (ej->popup, TRUE);
     gtk_window_set_resizable (GTK_WINDOW (ej->popup), FALSE);
