@@ -12,6 +12,5 @@ Package: lxplug-ejecter
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, lxmenu-data,
  lxpanel, lxpanel-data, libfm-modules
-Recommends: pulseaudio-module-bluetooth, pi-bluetooth
 Description: Ejecter plugin for lxpanel
  Plugin for lxpanel to safely eject USB devices before removal.
