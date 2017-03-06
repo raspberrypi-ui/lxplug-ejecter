@@ -1,3 +1,6 @@
+#ifdef HAVE_CONFIG_H
+#include <config.h>
+#endif
 #include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -6,7 +9,6 @@
 
 #include <gio/gio.h>
 
-#include "config.h"
 #include "plugin.h"
 
 #define ICON_BUTTON_TRIM 4
@@ -833,10 +835,12 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     EjecterPlugin * ej = g_new0 (EjecterPlugin, 1);
     GtkWidget *p;
     
+#ifdef ENABLE_NLS
     setlocale (LC_ALL, "");
-    bindtextdomain (PACKAGE, NULL);
-    bind_textdomain_codeset (PACKAGE, "UTF-8");
-    textdomain (PACKAGE);
+    bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
+    bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
+    textdomain ( GETTEXT_PACKAGE );
+#endif
 
     ej->tray_icon = gtk_image_new ();
     set_icon (panel, ej->tray_icon, "media-eject", 0);
