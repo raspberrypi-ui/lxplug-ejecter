@@ -1,3 +1,9 @@
+lxplug-ejecter (0.2) stretch; urgency=medium
+
+  * Dependencies updated
+
+ -- Simon Long <simon@raspberrypi.org>  Tue, 01 Aug 2017 12:35:43 +0100
+
 lxplug-ejecter (0.1) stretch; urgency=medium
 
   * Initial release.
