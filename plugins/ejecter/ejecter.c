@@ -802,6 +802,9 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
 
+#ifdef ENABLE_NLS
+    textdomain ( GETTEXT_PACKAGE );
+#endif
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
     {
@@ -887,5 +890,6 @@ LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .description = N_("Ejects mounted drives"),
     .new_instance = ejecter_constructor,
     .reconfigure = ejecter_configuration_changed,
-    .button_press_event = ejecter_button_press_event
+    .button_press_event = ejecter_button_press_event,
+    .gettext_package = GETTEXT_PACKAGE
 };
