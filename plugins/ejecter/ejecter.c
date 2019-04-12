@@ -40,6 +40,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define ICON_BUTTON_TRIM 4
 
+//#define AUTOHIDE      // experimental for now...
+
 //#define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
@@ -114,6 +116,7 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
 static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
 static void hide_message (EjecterPlugin *ej);
+static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static void create_menuitem (EjecterDevice *d);
@@ -199,12 +202,14 @@ static void handle_volume_added (GtkWidget *widget, GVolume *volume, EjecterPlug
 {
     new_volume (data, volume);
     if (data->menu && gtk_widget_get_visible (data->menu)) show_menu (data);
+    update_icon (data);
 }
 
 static void handle_mount_added (GtkWidget *widget, GMount *mount, EjecterPlugin *data)
 {
     new_mount (data, mount);
     if (data->menu && gtk_widget_get_visible (data->menu)) show_menu (data);
+    update_icon (data);
 }
 
 static EjecterDevice *new_device (GDrive *drive, EjecterPlugin *plugin)
@@ -379,6 +384,7 @@ static void handle_mount_unmounted (GtkWidget *widget, gpointer ptr)
     }
 
     if (data->menu && gtk_widget_get_visible (data->menu)) show_menu (data);
+    update_icon (data);
 }
 
 static void handle_volume_removed (GtkWidget *widget, gpointer ptr)
@@ -407,6 +413,7 @@ static void handle_volume_removed (GtkWidget *widget, gpointer ptr)
 	}
 
     if (data->menu && gtk_widget_get_visible (data->menu)) show_menu (data);
+    update_icon (data);
 }
 
 static void handle_drive_disconnected (GtkWidget *widget, gpointer ptr)
@@ -421,6 +428,7 @@ static void handle_drive_disconnected (GtkWidget *widget, gpointer ptr)
     device_remove (dev);
 
     if (data->menu && gtk_widget_get_visible (data->menu)) show_menu (data);
+    update_icon (data);
 }
 
 static void handle_eject_clicked (GtkWidget *widget, gpointer ptr)
@@ -691,6 +699,23 @@ static void hide_message (EjecterPlugin *ej)
 	}
 }
 
+static void update_icon (EjecterPlugin *ej)
+{
+#ifdef AUTOHIDE
+    /* Loop through all devices, counting... */
+    int count = 0;
+    GList *iter, *keys = g_hash_table_get_keys (ej->devices);
+    for (iter = keys; iter != NULL; iter = g_list_next (iter))
+    {
+        EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
+        if (dev) count++;
+    }
+
+    if (count) gtk_widget_show_all (ej->plugin);
+    else gtk_widget_hide_all (ej->plugin);
+#endif
+}
+
 static void show_menu (EjecterPlugin *ej)
 {
     hide_message (ej);
@@ -906,6 +931,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Show the widget, and return. */
     gtk_widget_show_all (p);
+    update_icon (ej);
     return p;
 }
 
