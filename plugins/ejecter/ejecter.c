@@ -65,6 +65,7 @@ typedef struct {
     GHashTable *devices;
     GSList *invalid_devices;
     GVolumeMonitor *monitor;
+    gboolean autohide;
 } EjecterPlugin;
 
 /* Per-device data */
@@ -701,19 +702,20 @@ static void hide_message (EjecterPlugin *ej)
 
 static void update_icon (EjecterPlugin *ej)
 {
-#ifdef AUTOHIDE
-    /* Loop through all devices, counting... */
-    int count = 0;
-    GList *iter, *keys = g_hash_table_get_keys (ej->devices);
-    for (iter = keys; iter != NULL; iter = g_list_next (iter))
+    if (ej->autohide)
     {
-        EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
-        if (dev) count++;
-    }
+        /* Loop through all devices, counting... */
+        int count = 0;
+        GList *iter, *keys = g_hash_table_get_keys (ej->devices);
+        for (iter = keys; iter != NULL; iter = g_list_next (iter))
+        {
+            EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
+            if (dev) count++;
+        }
 
-    if (count) gtk_widget_show_all (ej->plugin);
-    else gtk_widget_hide_all (ej->plugin);
-#endif
+        if (count) gtk_widget_show_all (ej->plugin);
+        else gtk_widget_hide_all (ej->plugin);
+    }
 }
 
 static void show_menu (EjecterPlugin *ej)
@@ -889,6 +891,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     /* Allocate and initialize plugin context */
     EjecterPlugin * ej = g_new0 (EjecterPlugin, 1);
     GtkWidget *p;
+    int val;
     
 #ifdef ENABLE_NLS
     setlocale (LC_ALL, "");
@@ -920,6 +923,13 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     ej->devices = g_hash_table_new (g_str_hash, g_str_equal);
     ej->invalid_devices = NULL;
     
+    if (config_setting_lookup_int (settings, "AutoHide", &val))
+    {
+        if (val == 1) ej->autohide = TRUE;
+        else ej->autohide = FALSE;
+    }
+    else ej->autohide = FALSE;
+
     /* Read in current devices */
     load_devices (ej);
 
@@ -935,6 +945,24 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     return p;
 }
 
+static gboolean ejecter_apply_configuration (gpointer user_data)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data ((GtkWidget *) user_data);
+
+    config_group_set_int (ej->settings, "AutoHide", ej->autohide);
+    if (ej->autohide) update_icon (ej);
+    else  gtk_widget_show_all (ej->plugin);
+}
+
+static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data (p);
+    return lxpanel_generic_config_dlg(_("Ejecter"), panel,
+        ejecter_apply_configuration, p,
+        _("Hide icon when no devices"), &ej->autohide, CONF_TYPE_BOOL,
+        NULL);
+}
+
 FM_DEFINE_MODULE(lxpanel_gtk, ejecter)
 
 /* Plugin descriptor. */
@@ -944,5 +972,6 @@ LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .new_instance = ejecter_constructor,
     .reconfigure = ejecter_configuration_changed,
     .button_press_event = ejecter_button_press_event,
+    .config = ejecter_configure,
     .gettext_package = GETTEXT_PACKAGE
 };
