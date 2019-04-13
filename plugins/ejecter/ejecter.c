@@ -710,11 +710,13 @@ static void update_icon (EjecterPlugin *ej)
         for (iter = keys; iter != NULL; iter = g_list_next (iter))
         {
             EjecterDevice *dev = g_hash_table_lookup (ej->devices, iter->data);
-            if (dev) count++;
+            if (dev)
+            {
+                gtk_widget_show_all (ej->plugin);
+                return;
+            }
         }
-
-        if (count) gtk_widget_show_all (ej->plugin);
-        else gtk_widget_hide_all (ej->plugin);
+        gtk_widget_hide_all (ej->plugin);
     }
 }
 
