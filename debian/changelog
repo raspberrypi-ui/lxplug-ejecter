@@ -1,3 +1,9 @@
+lxplug-ejecter (0.4) stretch; urgency=medium
+
+  * Add optional autohide of icon when no ejectable devices
+
+ -- Simon Long <simon@raspberrypi.org>  Tue, 23 Apr 2019 08:30:42 +0100
+
 lxplug-ejecter (0.3) stretch; urgency=medium
 
   * Fix internationalisation
