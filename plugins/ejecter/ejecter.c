@@ -63,6 +63,7 @@ typedef struct {
     GVolumeMonitor *monitor;
     gboolean autohide;
     gboolean ejecting;
+    gboolean removed;
 } EjecterPlugin;
 
 typedef struct {
@@ -93,7 +94,7 @@ static void set_icon (LXPanel *p, GtkWidget *image, const char *icon, int size);
 static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("MOUNT ADDED");
+    DEBUG ("MOUNT ADDED %s", g_mount_get_name (mount));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -102,10 +103,11 @@ static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
 static void handle_mount_out (GtkWidget *widget, GMount *mount, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("MOUNT REMOVED");
+    DEBUG ("MOUNT REMOVED %s", g_mount_get_name (mount));
 
-    if (ej->ejecting == FALSE)
+    if (ej->ejecting == FALSE && ej->removed == TRUE)
         show_message (ej, _("Drive was removed without ejecting"), _("Please use menu to eject before removal"));
+    ej->removed = FALSE;
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -114,7 +116,7 @@ static void handle_mount_out (GtkWidget *widget, GMount *mount, gpointer data)
 static void handle_volume_in (GtkWidget *widget, GVolume *vol, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("VOLUME ADDED");
+    DEBUG ("VOLUME ADDED %s", g_volume_get_name (vol));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -123,7 +125,7 @@ static void handle_volume_in (GtkWidget *widget, GVolume *vol, gpointer data)
 static void handle_volume_out (GtkWidget *widget, GVolume *vol, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("VOLUME REMOVED");
+    DEBUG ("VOLUME REMOVED %s", g_volume_get_name (vol));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -132,7 +134,7 @@ static void handle_volume_out (GtkWidget *widget, GVolume *vol, gpointer data)
 static void handle_drive_in (GtkWidget *widget, GDrive *drive, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("DRIVE ADDED");
+    DEBUG ("DRIVE ADDED %s", g_drive_get_name (drive));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -141,8 +143,9 @@ static void handle_drive_in (GtkWidget *widget, GDrive *drive, gpointer data)
 static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("DRIVE REMOVED");
+    DEBUG ("DRIVE REMOVED %s %d", g_drive_get_name (drive));
 
+    ej->removed = TRUE;
     hide_message (ej);
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
@@ -580,13 +583,14 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     ej->popup = NULL;
     ej->menu = NULL;
     ej->ejecting = FALSE;
+    ej->removed = FALSE;
 
-    g_signal_connect (ej->monitor, "volume_added", G_CALLBACK (handle_volume_in), ej);
-    g_signal_connect (ej->monitor, "volume_removed", G_CALLBACK (handle_volume_out), ej);
-    g_signal_connect (ej->monitor, "mount_added", G_CALLBACK (handle_mount_in), ej);
-    g_signal_connect (ej->monitor, "mount_removed", G_CALLBACK (handle_mount_out), ej);
-    g_signal_connect (ej->monitor, "drive_connected", G_CALLBACK (handle_drive_in), ej);
-    g_signal_connect (ej->monitor, "drive_disconnected", G_CALLBACK (handle_drive_out), ej);
+    g_signal_connect (ej->monitor, "volume-added", G_CALLBACK (handle_volume_in), ej);
+    g_signal_connect (ej->monitor, "volume-removed", G_CALLBACK (handle_volume_out), ej);
+    g_signal_connect (ej->monitor, "mount-added", G_CALLBACK (handle_mount_in), ej);
+    g_signal_connect (ej->monitor, "mount-removed", G_CALLBACK (handle_mount_out), ej);
+    g_signal_connect (ej->monitor, "drive-connected", G_CALLBACK (handle_drive_in), ej);
+    g_signal_connect (ej->monitor, "drive-disconnected", G_CALLBACK (handle_drive_out), ej);
 
     /* Show the widget, and return. */
     gtk_widget_show_all (p);
