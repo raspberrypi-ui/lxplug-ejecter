@@ -375,10 +375,12 @@ static void update_icon (EjecterPlugin *ej)
             if (is_drive_mounted (drv))
             {
                 gtk_widget_show_all (ej->plugin);
+                gtk_widget_set_sensitive (ej->plugin, TRUE);
                 return;
             }
         }
         gtk_widget_hide_all (ej->plugin);
+        gtk_widget_set_sensitive (ej->plugin, FALSE);
     }
 }
 
@@ -542,8 +544,7 @@ static void ejecter_destructor (gpointer user_data)
 static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *settings)
 {
     /* Allocate and initialize plugin context */
-    EjecterPlugin * ej = g_new0 (EjecterPlugin, 1);
-    GtkWidget *p;
+    EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
     int val;
     
 #ifdef ENABLE_NLS
@@ -560,15 +561,15 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Allocate top level widget and set into Plugin widget pointer. */
     ej->panel = panel;
-    ej->plugin = p = gtk_button_new ();
+    ej->plugin = gtk_button_new ();
     gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
     g_signal_connect (ej->plugin, "button-press-event", G_CALLBACK(ejecter_button_press_event), NULL);
     ej->settings = settings;
-    lxpanel_plugin_set_data (p, ej, ejecter_destructor);
-    gtk_widget_add_events (p, GDK_BUTTON_PRESS_MASK);
+    lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
+    gtk_widget_add_events (ej->plugin, GDK_BUTTON_PRESS_MASK);
 
     /* Allocate icon as a child of top level */
-    gtk_container_add (GTK_CONTAINER(p), ej->tray_icon);
+    gtk_container_add (GTK_CONTAINER(ej->plugin), ej->tray_icon);
 
     /* Initialise data structures */
     ej->monitor = g_volume_monitor_get ();
@@ -593,9 +594,9 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     g_signal_connect (ej->monitor, "drive-disconnected", G_CALLBACK (handle_drive_out), ej);
 
     /* Show the widget, and return. */
-    gtk_widget_show_all (p);
+    gtk_widget_show_all (ej->plugin);
     update_icon (ej);
-    return p;
+    return ej->plugin;
 }
 
 static gboolean ejecter_apply_configuration (gpointer user_data)
@@ -604,7 +605,7 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
 
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
     if (ej->autohide) update_icon (ej);
-    else  gtk_widget_show_all (ej->plugin);
+    else gtk_widget_show_all (ej->plugin);
 }
 
 static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
