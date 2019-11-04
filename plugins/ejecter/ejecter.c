@@ -62,8 +62,7 @@ typedef struct {
     GtkWidget *empty;               /* Menuitem shown when no devices */
     GVolumeMonitor *monitor;
     gboolean autohide;
-    gboolean ejecting;
-    gboolean removed;
+    GList *ejdrives;
 } EjecterPlugin;
 
 typedef struct {
@@ -90,6 +89,25 @@ static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
 static void set_icon (LXPanel *p, GtkWidget *image, const char *icon, int size);
 
+static void log_eject (EjecterPlugin *ej, GDrive *drive)
+{
+    ej->ejdrives = g_list_append (ej->ejdrives, drive);
+}
+
+static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive)
+{
+    GList *l;
+    gboolean ejected = FALSE;
+    for (l = ej->ejdrives; l != NULL; l = l->next)
+    {
+        if (G_DRIVE (l->data) == drive)
+        {
+            ejected = TRUE;
+            ej->ejdrives = g_list_remove (ej->ejdrives, drive);
+        }
+    }
+    return ejected;
+}
 
 static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
 {
@@ -105,12 +123,15 @@ static void handle_mount_out (GtkWidget *widget, GMount *mount, gpointer data)
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("MOUNT REMOVED %s", g_mount_get_name (mount));
 
-    if (ej->ejecting == FALSE && ej->removed == TRUE)
-        show_message (ej, _("Drive was removed without ejecting"), _("Please use menu to eject before removal"));
-    ej->removed = FALSE;
-
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
+}
+
+static void handle_mount_pre (GtkWidget *widget, GMount *mount, gpointer data)
+{
+    EjecterPlugin *ej = (EjecterPlugin *) data;
+    DEBUG ("MOUNT PREUNMOUNT %s", g_mount_get_name (mount));
+    log_eject (ej, g_mount_get_drive (mount));
 }
 
 static void handle_volume_in (GtkWidget *widget, GVolume *vol, gpointer data)
@@ -145,8 +166,10 @@ static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("DRIVE REMOVED %s %d", g_drive_get_name (drive));
 
-    ej->removed = TRUE;
-    hide_message (ej);
+    if (was_ejected (ej, drive))
+        hide_message (ej);
+    else
+        show_message (ej, _("Drive was removed without ejecting"), _("Please use menu to eject before removal"));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -159,7 +182,6 @@ static void handle_eject_clicked (GtkWidget *widget, gpointer data)
     GDrive *drv = dt->drv;
     DEBUG ("EJECT %s", g_drive_get_name (drv));
 
-    ej->ejecting = TRUE;
     g_drive_eject_with_operation (drv, G_MOUNT_UNMOUNT_NONE, NULL, NULL, eject_done, ej);
 }
 
@@ -170,7 +192,6 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
     char buffer[128];
     DEBUG ("EJECT COMPLETE");
 
-    ej->ejecting = FALSE;
     g_drive_eject_with_operation_finish (drv, res, NULL);
     sprintf (buffer, _("%s has been ejected"), g_drive_get_name (drv));
     show_message (ej, buffer, _("It is now safe to remove the device"));
@@ -350,13 +371,10 @@ static void hide_message (EjecterPlugin *ej)
 static gboolean is_drive_mounted (GDrive *d)
 {
     GList *viter, *vols = g_drive_get_volumes (d);
-    int volume_count = g_list_length (vols);
-    if (volume_count)
+
+    for (viter = vols; viter != NULL; viter = g_list_next (viter))
     {
-        for (viter = vols; viter != NULL; viter = g_list_next (viter))
-        {
-            if (g_volume_get_mount ((GVolume *) viter->data) != NULL) return TRUE;
-        }
+        if (g_volume_get_mount ((GVolume *) viter->data) != NULL) return TRUE;
     }
     return FALSE;
 }
@@ -583,13 +601,12 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     ej->popup = NULL;
     ej->menu = NULL;
-    ej->ejecting = FALSE;
-    ej->removed = FALSE;
 
     g_signal_connect (ej->monitor, "volume-added", G_CALLBACK (handle_volume_in), ej);
     g_signal_connect (ej->monitor, "volume-removed", G_CALLBACK (handle_volume_out), ej);
     g_signal_connect (ej->monitor, "mount-added", G_CALLBACK (handle_mount_in), ej);
     g_signal_connect (ej->monitor, "mount-removed", G_CALLBACK (handle_mount_out), ej);
+    g_signal_connect (ej->monitor, "mount-pre-unmount", G_CALLBACK (handle_mount_pre), ej);
     g_signal_connect (ej->monitor, "drive-connected", G_CALLBACK (handle_drive_in), ej);
     g_signal_connect (ej->monitor, "drive-disconnected", G_CALLBACK (handle_drive_out), ej);
 
