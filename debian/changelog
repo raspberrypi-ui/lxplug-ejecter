@@ -1,3 +1,9 @@
+lxplug-ejecter (0.7) buster; urgency=medium
+
+  * Use pre-unmount message for better robustness
+
+ -- Simon Long <simon@raspberrypi.org>  Thu, 07 Nov 2019 11:15:32 +0000
+
 lxplug-ejecter (0.6) unstable; urgency=medium
 
   * Hide hover behaviour when button hidden
