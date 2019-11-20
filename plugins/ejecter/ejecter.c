@@ -190,11 +190,22 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
     EjecterPlugin *ej = (EjecterPlugin *) data;
     GDrive *drv = (GDrive *) source_object;
     char buffer[128];
-    DEBUG ("EJECT COMPLETE");
+    GError *err = NULL;
 
-    g_drive_eject_with_operation_finish (drv, res, NULL);
-    sprintf (buffer, _("%s has been ejected"), g_drive_get_name (drv));
-    show_message (ej, buffer, _("It is now safe to remove the device"));
+    g_drive_eject_with_operation_finish (drv, res, &err);
+
+    if (err == NULL)
+    {
+        DEBUG ("EJECT COMPLETE");
+        sprintf (buffer, _("%s has been ejected"), g_drive_get_name (drv));
+        show_message (ej, buffer, _("It is now safe to remove the device"));
+    }
+    else
+    {
+        DEBUG ("EJECT FAILED");
+        sprintf (buffer, _("Failed to eject %s"), g_drive_get_name (drv));
+        show_message (ej, buffer, err->message);
+    }
 }
 
 /* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */

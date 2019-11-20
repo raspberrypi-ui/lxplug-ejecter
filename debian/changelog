@@ -1,3 +1,9 @@
+lxplug-ejecter (0.8) buster; urgency=medium
+
+  * Check to see if eject was successful and warn if not
+
+ -- Simon Long <simon@raspberrypi.org>  Wed, 20 Nov 2019 14:29:33 +0000
+
 lxplug-ejecter (0.7) buster; urgency=medium
 
   * Use pre-unmount message for better robustness
