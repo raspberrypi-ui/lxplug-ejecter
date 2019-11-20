@@ -1,3 +1,9 @@
+lxplug-ejecter (0.9) buster; urgency=medium
+
+  * Update translation files
+
+ -- Simon Long <simon@raspberrypi.org>  Wed, 20 Nov 2019 19:23:10 +0000
+
 lxplug-ejecter (0.8) buster; urgency=medium
 
   * Check to see if eject was successful and warn if not
