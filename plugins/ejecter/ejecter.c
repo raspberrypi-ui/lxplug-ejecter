@@ -38,8 +38,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "plugin.h"
 
-#define ICON_BUTTON_TRIM 4
-
 //#define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
@@ -87,7 +85,6 @@ static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
-static void set_icon (LXPanel *p, GtkWidget *image, const char *icon, int size);
 
 static void log_eject (EjecterPlugin *ej, GDrive *drive)
 {
@@ -495,7 +492,7 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
     eject = gtk_image_new ();
-    set_icon (ej->panel, eject, "media-eject", 16);
+    lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
     gtk_box_pack_start (GTK_BOX (box), eject, FALSE, FALSE, 0);
 
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
@@ -504,35 +501,6 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     gtk_widget_show_all (item);
 
     return item;
-}
-
-static void set_icon (LXPanel *p, GtkWidget *image, const char *icon, int size)
-{
-    GdkPixbuf *pixbuf;
-    if (size == 0) size = panel_get_icon_size (p) - ICON_BUTTON_TRIM;
-    if (gtk_icon_theme_has_icon (panel_get_icon_theme (p), icon))
-    {
-        GtkIconInfo *info = gtk_icon_theme_lookup_icon (panel_get_icon_theme (p), icon, size, GTK_ICON_LOOKUP_FORCE_SIZE);
-        pixbuf = gtk_icon_info_load_icon (info, NULL);
-        gtk_icon_info_free (info);
-        if (pixbuf != NULL)
-        {
-            gtk_image_set_from_pixbuf (GTK_IMAGE (image), pixbuf);
-            g_object_unref (pixbuf);
-            return;
-        }
-    }
-    else
-    {
-        char path[256];
-        sprintf (path, "%s/images/%s.png", PACKAGE_DATA_DIR, icon);
-        pixbuf = gdk_pixbuf_new_from_file_at_scale (path, size, size, TRUE, NULL);
-        if (pixbuf != NULL)
-        {
-            gtk_image_set_from_pixbuf (GTK_IMAGE (image), pixbuf);
-            g_object_unref (pixbuf);
-        }
-    }
 }
 
 /* Handler for menu button click */
@@ -557,7 +525,7 @@ static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (p);
 
-    set_icon (panel, ej->tray_icon, "media-eject", 0);
+    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
 }
 
 /* Plugin destructor. */
@@ -584,7 +552,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 #endif
 
     ej->tray_icon = gtk_image_new ();
-    set_icon (panel, ej->tray_icon, "media-eject", 0);
+    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
     gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
     gtk_widget_set_visible (ej->tray_icon, TRUE);
 
