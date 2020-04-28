@@ -509,7 +509,7 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
     EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
 
 #ifdef ENABLE_NLS
-    textdomain ( GETTEXT_PACKAGE );
+    textdomain (GETTEXT_PACKAGE);
 #endif
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
@@ -543,12 +543,12 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     /* Allocate and initialize plugin context */
     EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
     int val;
-    
+
 #ifdef ENABLE_NLS
     setlocale (LC_ALL, "");
-    bindtextdomain ( GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR );
-    bind_textdomain_codeset ( GETTEXT_PACKAGE, "UTF-8" );
-    textdomain ( GETTEXT_PACKAGE );
+    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+    textdomain (GETTEXT_PACKAGE);
 #endif
 
     ej->tray_icon = gtk_image_new ();
@@ -607,6 +607,9 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
 static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data (p);
+#ifdef ENABLE_NLS
+    textdomain (GETTEXT_PACKAGE);
+#endif
     return lxpanel_generic_config_dlg(_("Ejecter"), panel,
         ejecter_apply_configuration, p,
         _("Hide icon when no devices"), &ej->autohide, CONF_TYPE_BOOL,
