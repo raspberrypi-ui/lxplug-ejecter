@@ -13,13 +13,13 @@ msgstr ""
 "Language-Team: Italian\n"
 "Language: it\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ASCII\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
 #: ../plugins/ejecter/ejecter.c:172
 msgid "Drive was removed without ejecting"
-msgstr "Il dispositivo è stato rimosso senza prima espellere"
+msgstr "Il dispositivo Ã¨ stato rimosso senza prima espellere"
 
 #: ../plugins/ejecter/ejecter.c:172
 msgid "Please use menu to eject before removal"
@@ -28,7 +28,7 @@ msgstr "Per favore usa il menu per espellere prima di rimuovere"
 #: ../plugins/ejecter/ejecter.c:200
 #, c-format
 msgid "%s has been ejected"
-msgstr "%s è stato rimosso con successo"
+msgstr "%s Ã¨ stato rimosso con successo"
 
 #: ../plugins/ejecter/ejecter.c:201
 msgid "It is now safe to remove the device"
