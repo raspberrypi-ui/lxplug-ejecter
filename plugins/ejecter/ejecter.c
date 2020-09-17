@@ -323,7 +323,7 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
 
 static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej)
 {
-    gtk_widget_hide (ej->popup);
+    hide_message (ej);
     gdk_pointer_ungrab (GDK_CURRENT_TIME);
     return FALSE;
 }
