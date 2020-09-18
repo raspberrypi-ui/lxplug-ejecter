@@ -78,7 +78,7 @@ static void fill_background (GtkWidget *widget, cairo_t *cr, GdkColor *bg_color,
 static void update_shape (EjecterPlugin *ej);
 static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej);
 static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data);
-static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
+static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
 static void hide_message (EjecterPlugin *ej);
 static void update_icon (EjecterPlugin *ej);
@@ -321,10 +321,9 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
     *push_in = TRUE;
 }
 
-static gboolean ejecter_mouse_out (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej)
+static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej)
 {
     hide_message (ej);
-    gdk_pointer_ungrab (GDK_CURRENT_TIME);
     return FALSE;
 }
 
@@ -362,9 +361,9 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     gtk_widget_hide (ej->popup);
     lxpanel_plugin_popup_set_position_helper (ej->panel, ej->tray_icon, ej->popup, &x, &y);
     gdk_window_move (gtk_widget_get_window (ej->popup), x, y);
+    gdk_window_set_events (gtk_widget_get_window (ej->popup), gdk_window_get_events (gtk_widget_get_window (ej->popup)) | GDK_BUTTON_PRESS_MASK);
+    g_signal_connect (G_OBJECT(ej->popup), "button-press-event", G_CALLBACK (ejecter_window_click), ej);
     gtk_window_present (GTK_WINDOW (ej->popup));
-    gdk_pointer_grab (gtk_widget_get_window (ej->popup), TRUE, GDK_BUTTON_PRESS_MASK, NULL, NULL, GDK_CURRENT_TIME);
-    g_signal_connect (G_OBJECT(ej->popup), "button-press-event", G_CALLBACK (ejecter_mouse_out), ej);
 }
 
 static void hide_message (EjecterPlugin *ej)
