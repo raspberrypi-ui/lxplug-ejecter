@@ -1,3 +1,9 @@
+lxplug-ejecter (0.12) buster; urgency=medium
+
+  * Added Slovak translation
+
+ -- Simon Long <simon@raspberrypi.com>  Mon, 07 Dec 2020 08:07:43 +0000
+
 lxplug-ejecter (0.11) buster; urgency=medium
 
   * Change popup behaviour to only close when directly clicked
