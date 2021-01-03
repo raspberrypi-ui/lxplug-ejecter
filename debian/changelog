@@ -1,3 +1,9 @@
+lxplug-ejecter (0.13) buster; urgency=medium
+
+  * Added Japanese translation 
+
+ -- Simon Long <simon@raspberrypi.com>  Sun, 03 Jan 2021 20:20:00 +0000
+
 lxplug-ejecter (0.12) buster; urgency=medium
 
   * Added Slovak translation
