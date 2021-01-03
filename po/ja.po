@@ -1,0 +1,59 @@
+# English translations for PACKAGE package.
+# Copyright (C) 2017 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#  <simon@raspberrypi.org>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: PACKAGE VERSION\n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-01-03 21:30+0900\n"
+"PO-Revision-Date: 2017-03-06 16:38+0000\n"
+"Last-Translator:  Akira Ouchi <akkiesoft@marokun.net>\n"
+"Language-Team: Japanese\n"
+"Language: ja\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+
+#: ../plugins/ejecter/ejecter.c:169
+msgid "Drive was removed without ejecting"
+msgstr "ドライブが取り外しを実行する前に抜き取られました"
+
+#: ../plugins/ejecter/ejecter.c:169
+msgid "Please use menu to eject before removal"
+msgstr "抜き取る前にはメニューを使用して取り外してください"
+
+#: ../plugins/ejecter/ejecter.c:197
+#, c-format
+msgid "%s has been ejected"
+msgstr "%s が取り外されました"
+
+#: ../plugins/ejecter/ejecter.c:198
+msgid "It is now safe to remove the device"
+msgstr "安全にデバイスを抜き取ることができます"
+
+#: ../plugins/ejecter/ejecter.c:203
+#, c-format
+msgid "Failed to eject %s"
+msgstr "%s の取り外しに失敗しました"
+
+#: ../plugins/ejecter/ejecter.c:555
+msgid "Select a drive in menu to eject safely"
+msgstr "安全に取り外すドライブをメニューから選択します"
+
+#: ../plugins/ejecter/ejecter.c:612 ../plugins/ejecter/ejecter.c:622
+msgid "Ejecter"
+msgstr "Ejecter"
+
+#: ../plugins/ejecter/ejecter.c:614
+msgid "Hide icon when no devices"
+msgstr "デバイスがないときはアイコンを隠す"
+
+#: ../plugins/ejecter/ejecter.c:623
+msgid "Ejects mounted drives"
+msgstr "マウントされたドライブを取り外します"
+
+#~ msgid "No ejectable devices"
+#~ msgstr "No ejectable devices"
