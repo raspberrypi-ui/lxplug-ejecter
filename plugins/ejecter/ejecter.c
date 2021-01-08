@@ -61,12 +61,15 @@ typedef struct {
     GVolumeMonitor *monitor;
     gboolean autohide;
     GList *ejdrives;
+    guint hide_timer;
 } EjecterPlugin;
 
 typedef struct {
     EjecterPlugin *ej;
     GDrive *drv;
 } CallbackData;
+
+#define HIDE_TIME_MS 5000
 
 /* Prototypes */
 
@@ -80,7 +83,7 @@ static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej);
 static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data);
 static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
-static void hide_message (EjecterPlugin *ej);
+static gboolean hide_message (EjecterPlugin *ej);
 static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
@@ -364,15 +367,19 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     gdk_window_set_events (gtk_widget_get_window (ej->popup), gdk_window_get_events (gtk_widget_get_window (ej->popup)) | GDK_BUTTON_PRESS_MASK);
     g_signal_connect (G_OBJECT(ej->popup), "button-press-event", G_CALLBACK (ejecter_window_click), ej);
     gtk_window_present (GTK_WINDOW (ej->popup));
+    ej->hide_timer = g_timeout_add (HIDE_TIME_MS, (GSourceFunc) hide_message, ej);
 }
 
-static void hide_message (EjecterPlugin *ej)
+static gboolean hide_message (EjecterPlugin *ej)
 {
+    if (ej->hide_timer) g_source_remove (ej->hide_timer);
     if (ej->popup)
     {
-		gtk_widget_destroy (ej->popup);
-		ej->popup = NULL;
-	}
+        gtk_widget_destroy (ej->popup);
+        ej->popup = NULL;
+    }
+    ej->hide_timer = 0;
+    return FALSE;
 }
 
 static gboolean is_drive_mounted (GDrive *d)
@@ -579,6 +586,8 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     ej->popup = NULL;
     ej->menu = NULL;
+
+    ej->hide_timer = 0;
 
     g_signal_connect (ej->monitor, "volume-added", G_CALLBACK (handle_volume_in), ej);
     g_signal_connect (ej->monitor, "volume-removed", G_CALLBACK (handle_volume_out), ej);

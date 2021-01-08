@@ -1,3 +1,9 @@
+lxplug-ejecter (0.14) buster; urgency=medium
+
+  * Hide popup automatically after five seconds
+
+ -- Simon Long <simon@raspberrypi.com>  Fri, 08 Jan 2021 10:48:12 +0000
+
 lxplug-ejecter (0.13) buster; urgency=medium
 
   * Added Japanese translation 
