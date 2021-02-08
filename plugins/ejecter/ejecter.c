@@ -84,7 +84,7 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
 static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
 static gboolean hide_message (EjecterPlugin *ej);
-static void update_icon (EjecterPlugin *ej);
+static gboolean update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
@@ -210,7 +210,7 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
 
 /* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */
 /* manually cause a tooltip to appear with a simple function call. I have no idea why not... */
-
+#if 0
 static void on_screen_changed (GtkWidget *window)
 {
 	GdkScreen *screen;
@@ -313,6 +313,7 @@ static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej)
 
     return FALSE;
 }
+#endif
 
 /* Ejecter functions */
 
@@ -339,7 +340,7 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     hide_message (ej);
 
     ej->popup = gtk_window_new (GTK_WINDOW_POPUP);
-    on_screen_changed (ej->popup);
+    //on_screen_changed (ej->popup);
     gtk_window_set_type_hint (GTK_WINDOW (ej->popup), GDK_WINDOW_TYPE_HINT_TOOLTIP);
     gtk_widget_set_app_paintable (ej->popup, TRUE);
     gtk_window_set_resizable (GTK_WINDOW (ej->popup), FALSE);
@@ -349,10 +350,11 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     gtk_container_add (GTK_CONTAINER (ej->popup), ej->alignment);
     gtk_widget_show (ej->alignment);
 
-    g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
-    g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
+    //g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
+    //g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
 
-    ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
+    //ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
+    ej->box = gtk_vbox_new (FALSE, 5);
     gtk_container_add (GTK_CONTAINER (ej->alignment), ej->box);
 
     item = gtk_label_new (str1);
@@ -393,7 +395,7 @@ static gboolean is_drive_mounted (GDrive *d)
     return FALSE;
 }
 
-static void update_icon (EjecterPlugin *ej)
+static gboolean update_icon (EjecterPlugin *ej)
 {
     if (ej->autohide)
     {
@@ -411,9 +413,10 @@ static void update_icon (EjecterPlugin *ej)
                 return;
             }
         }
-        gtk_widget_hide_all (ej->plugin);
+        gtk_widget_hide (ej->plugin);
         gtk_widget_set_sensitive (ej->plugin, FALSE);
     }
+    return FALSE;
 }
 
 static void show_menu (EjecterPlugin *ej)
@@ -437,7 +440,7 @@ static void show_menu (EjecterPlugin *ej)
             dt->ej = ej;
             dt->drv = drv;
             g_signal_connect (item, "activate", G_CALLBACK (handle_eject_clicked), dt);
-            gtk_menu_append (ej->menu, item);
+            gtk_menu_shell_append (ej->menu, item);
             count++;
         }
     }
@@ -599,7 +602,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Show the widget, and return. */
     gtk_widget_show_all (ej->plugin);
-    update_icon (ej);
+    g_idle_add (update_icon, ej);
     return ej->plugin;
 }
 
