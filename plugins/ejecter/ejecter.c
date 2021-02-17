@@ -352,9 +352,7 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     ej->alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
     gtk_container_add (GTK_CONTAINER (ej->popup), ej->alignment);
     gtk_widget_show (ej->alignment);
-#endif
 
-#if !GTK_CHECK_VERSION(3, 0, 0)
     g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
     g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
 #endif
