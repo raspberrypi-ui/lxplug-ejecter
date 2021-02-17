@@ -84,7 +84,7 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
 static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
 static void show_message (EjecterPlugin *ej, char *str1, char *str2);
 static gboolean hide_message (EjecterPlugin *ej);
-static gboolean update_icon (EjecterPlugin *ej);
+static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
@@ -210,7 +210,7 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
 
 /* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */
 /* manually cause a tooltip to appear with a simple function call. I have no idea why not... */
-#if 0
+#if !GTK_CHECK_VERSION(3, 0, 0)
 static void on_screen_changed (GtkWidget *window)
 {
 	GdkScreen *screen;
@@ -340,23 +340,32 @@ static void show_message (EjecterPlugin *ej, char *str1, char *str2)
     hide_message (ej);
 
     ej->popup = gtk_window_new (GTK_WINDOW_POPUP);
-    //on_screen_changed (ej->popup);
+#if !GTK_CHECK_VERSION(3, 0, 0)
+    on_screen_changed (ej->popup);
+#endif
     gtk_window_set_type_hint (GTK_WINDOW (ej->popup), GDK_WINDOW_TYPE_HINT_TOOLTIP);
     gtk_widget_set_app_paintable (ej->popup, TRUE);
     gtk_window_set_resizable (GTK_WINDOW (ej->popup), FALSE);
     gtk_widget_set_name (ej->popup, "gtk-tooltip");
 
+#if !GTK_CHECK_VERSION(3, 0, 0)
     ej->alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
     gtk_container_add (GTK_CONTAINER (ej->popup), ej->alignment);
     gtk_widget_show (ej->alignment);
+#endif
 
-    //g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
-    //g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
+#if !GTK_CHECK_VERSION(3, 0, 0)
+    g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
+    g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
+#endif
 
-    //ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
-    ej->box = gtk_vbox_new (FALSE, 5);
+#if GTK_CHECK_VERSION(3, 0, 0)
+    ej->box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
+    gtk_container_add (GTK_CONTAINER (ej->popup), ej->box);
+#else
+    ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
     gtk_container_add (GTK_CONTAINER (ej->alignment), ej->box);
-
+#endif
     item = gtk_label_new (str1);
     gtk_box_pack_start (GTK_BOX (ej->box), item, FALSE, FALSE, 0);
     item = gtk_label_new (str2);
@@ -395,7 +404,7 @@ static gboolean is_drive_mounted (GDrive *d)
     return FALSE;
 }
 
-static gboolean update_icon (EjecterPlugin *ej)
+static void update_icon (EjecterPlugin *ej)
 {
     if (ej->autohide)
     {
@@ -413,9 +422,19 @@ static gboolean update_icon (EjecterPlugin *ej)
                 return;
             }
         }
+#if !GTK_CHECK_VERSION(3, 0, 0)
+        gtk_widget_hide_all (ej->plugin);
+#else
         gtk_widget_hide (ej->plugin);
+#endif
         gtk_widget_set_sensitive (ej->plugin, FALSE);
     }
+}
+
+static gboolean idle_icon_update (gpointer data)
+{
+    EjecterPlugin *ej = (EjecterPlugin *) data;
+    update_icon (ej);
     return FALSE;
 }
 
@@ -425,6 +444,9 @@ static void show_menu (EjecterPlugin *ej)
     hide_menu (ej);
 
     ej->menu = gtk_menu_new ();
+#if GTK_CHECK_VERSION(3, 0, 0)
+    gtk_menu_set_reserve_toggle_size (GTK_MENU (ej->menu), FALSE);
+#endif
 
     /* loop through all devices, creating menu items for them */
     GList *driter, *drives = g_volume_monitor_get_connected_drives (ej->monitor);
@@ -440,7 +462,11 @@ static void show_menu (EjecterPlugin *ej)
             dt->ej = ej;
             dt->drv = drv;
             g_signal_connect (item, "activate", G_CALLBACK (handle_eject_clicked), dt);
-            gtk_menu_shell_append (ej->menu, item);
+#if GTK_CHECK_VERSION(3, 0, 0)
+            gtk_menu_shell_append (GTK_MENU_SHELL (ej->menu), item);
+#else
+            gtk_menu_append (ej->menu, item);
+#endif
             count++;
         }
     }
@@ -448,7 +474,11 @@ static void show_menu (EjecterPlugin *ej)
     if (count)
     {
         gtk_widget_show_all (ej->menu);
+#if GTK_CHECK_VERSION(3, 0, 0)
+        gtk_menu_popup_at_widget (GTK_MENU (ej->menu), ej->plugin, GDK_GRAVITY_NORTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+#else
         gtk_menu_popup (GTK_MENU (ej->menu), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
+#endif
     }
 }
 
@@ -489,23 +519,33 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     strcat (buffer, ")");
     icon = gtk_image_new_from_gicon (g_volume_get_icon (v), GTK_ICON_SIZE_BUTTON);
 
+#if GTK_CHECK_VERSION(3, 0, 0)
+    item = gtk_menu_item_new ();
+    box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+    gtk_box_pack_start (GTK_BOX (box), icon, TRUE, TRUE, 0);
+#else
     item = gtk_image_menu_item_new ();
     box = gtk_hbox_new (FALSE, 4);
+#endif
     gtk_container_add (GTK_CONTAINER (item), box);
 
     label = gtk_label_new (NULL);
     gtk_label_set_max_width_chars (GTK_LABEL (label), 40);
     gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
     gtk_label_set_text (GTK_LABEL (label), buffer);
+#if !GTK_CHECK_VERSION(3, 0, 0)
     gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
+#endif
     gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
 
     eject = gtk_image_new ();
     lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
     gtk_box_pack_start (GTK_BOX (box), eject, FALSE, FALSE, 0);
 
+#if !GTK_CHECK_VERSION(3, 0, 0)
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
     gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), icon);
+#endif
 
     gtk_widget_show_all (item);
 
@@ -602,7 +642,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Show the widget, and return. */
     gtk_widget_show_all (ej->plugin);
-    g_idle_add (update_icon, ej);
+    g_idle_add (idle_icon_update, ej);
     return ej->plugin;
 }
 
