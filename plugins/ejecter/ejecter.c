@@ -518,29 +518,28 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     icon = gtk_image_new_from_gicon (g_volume_get_icon (v), GTK_ICON_SIZE_BUTTON);
 
 #if GTK_CHECK_VERSION(3, 0, 0)
-    item = gtk_menu_item_new ();
-    box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, MENU_ICON_SPACE);
-    gtk_box_pack_start (GTK_BOX (box), icon, TRUE, TRUE, 0);
+    item = lxpanel_plugin_new_menu_item (ej->panel, buffer, 40, NULL);
+    lxpanel_plugin_update_menu_icon (item, icon);
 #else
     item = gtk_image_menu_item_new ();
     box = gtk_hbox_new (FALSE, 4);
-#endif
     gtk_container_add (GTK_CONTAINER (item), box);
 
     label = gtk_label_new (NULL);
     gtk_label_set_max_width_chars (GTK_LABEL (label), 40);
     gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
     gtk_label_set_text (GTK_LABEL (label), buffer);
-#if !GTK_CHECK_VERSION(3, 0, 0)
     gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-#endif
     gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
+#endif
 
     eject = gtk_image_new ();
     lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
+#if GTK_CHECK_VERSION(3, 0, 0)
+    lxpanel_plugin_append_menu_icon (item, eject);
+#else
     gtk_box_pack_start (GTK_BOX (box), eject, FALSE, FALSE, 0);
 
-#if !GTK_CHECK_VERSION(3, 0, 0)
     gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
     gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), icon);
 #endif
