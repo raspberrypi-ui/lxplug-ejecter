@@ -519,7 +519,7 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
 
 #if GTK_CHECK_VERSION(3, 0, 0)
     item = gtk_menu_item_new ();
-    box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, 6);
+    box = gtk_box_new (GTK_ORIENTATION_HORIZONTAL, MENU_ICON_SPACE);
     gtk_box_pack_start (GTK_BOX (box), icon, TRUE, TRUE, 0);
 #else
     item = gtk_image_menu_item_new ();
