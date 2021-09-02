@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "plugin.h"
 
-#define DEBUG_ON
+//#define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
 #else
