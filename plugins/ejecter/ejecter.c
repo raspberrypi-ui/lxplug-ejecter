@@ -38,7 +38,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "plugin.h"
 
-//#define DEBUG_ON
+#define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
 #else
@@ -583,6 +583,31 @@ static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
     lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
 }
 
+/* Handler for control message */
+static gboolean ejecter_control_msg (GtkWidget *plugin, const char *cmd)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
+
+    DEBUG ("Eject command device %s\n", cmd);
+
+    /* Loop through all drives until we find the one matching the supplied device */
+    GList *iter, *drives = g_volume_monitor_get_connected_drives (ej->monitor);
+    for (iter = drives; iter != NULL; iter = g_list_next (iter))
+    {
+        GDrive *d = iter->data;
+        char *id = g_drive_get_identifier (d, "unix-device");
+
+        if (!g_strcmp0 (id, cmd)) 
+        {
+            DEBUG ("EXTERNAL EJECT %s", g_drive_get_name (d));
+            ej->ejdrives = g_list_append (ej->ejdrives, d);
+        }
+        g_free (id);
+    }
+    g_list_free_full (drives, g_object_unref);
+    return TRUE;
+}
+
 /* Plugin destructor. */
 static void ejecter_destructor (gpointer user_data)
 {
@@ -683,5 +708,6 @@ LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .reconfigure = ejecter_configuration_changed,
     .button_press_event = ejecter_button_press_event,
     .config = ejecter_configure,
+    .control = ejecter_control_msg,
     .gettext_package = GETTEXT_PACKAGE
 };

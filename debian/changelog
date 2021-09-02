@@ -1,3 +1,9 @@
+lxplug-ejecter (0.17) bullseye; urgency=medium
+
+  * Add external eject command for use by piclone
+
+ -- Simon Long <simon@raspberrypi.com>  Thu, 02 Sep 2021 12:05:51 +0100
+
 lxplug-ejecter (0.16) bullseye; urgency=medium
 
   * GTK+3 version
