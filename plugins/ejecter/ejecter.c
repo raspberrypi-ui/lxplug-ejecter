@@ -38,9 +38,9 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "plugin.h"
 
-//#define DEBUG_ON
+#define DEBUG_ON
 #ifdef DEBUG_ON
-#define DEBUG(fmt,args...) g_message("ej: " fmt,##args)
+#define DEBUG(fmt,args...) if(getenv("DEBUG_EJ"))g_message("ej: " fmt,##args)
 #else
 #define DEBUG
 #endif
@@ -600,7 +600,7 @@ static gboolean ejecter_control_msg (GtkWidget *plugin, const char *cmd)
         if (!g_strcmp0 (id, cmd)) 
         {
             DEBUG ("EXTERNAL EJECT %s", g_drive_get_name (d));
-            ej->ejdrives = g_list_append (ej->ejdrives, d);
+            log_eject (ej, d);
         }
         g_free (id);
     }
