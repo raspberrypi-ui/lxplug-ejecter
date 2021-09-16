@@ -12,6 +12,7 @@ Homepage: http://raspberrypi.org/
 Package: lxplug-ejecter
 Architecture: any
 Depends: ${misc:Depends}, ${shlibs:Depends}, lxmenu-data, libgtk-3-0 (>= 3.24),
- lxpanel (>= 0.10.1-1+rpt1), lxpanel-data (>= 0.10.1-1+rpt1), libfm-modules (>= 1.3.2-1+rpt1)
+ lxpanel (>= 0.10.1-1+rpt1), lxpanel-data (>= 0.10.1-1+rpt1), libfm-modules (>= 1.3.2-1+rpt1),
+ eject
 Description: Ejecter plugin for lxpanel
  Plugin for lxpanel to safely eject USB devices before removal.
