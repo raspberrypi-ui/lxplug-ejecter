@@ -69,21 +69,18 @@ typedef struct {
     GDrive *drv;
 } CallbackData;
 
+typedef struct {
+    GDrive *drv;
+    unsigned int seq;
+} EjectList;
+
 #define HIDE_TIME_MS 5000
 
 /* Prototypes */
 
 static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
-static void gtk_tooltip_window_style_set (EjecterPlugin *ej);
-static void draw_round_rect (cairo_t *cr, gdouble aspect, gdouble x, gdouble y, gdouble corner_radius, gdouble width, gdouble height);
-static void fill_background (GtkWidget *widget, cairo_t *cr, GdkColor *bg_color, GdkColor *border_color, guchar alpha);
-static void update_shape (EjecterPlugin *ej);
-static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej);
 static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data);
-static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej);
-static void show_message (EjecterPlugin *ej, char *str1, char *str2);
-static gboolean hide_message (EjecterPlugin *ej);
 static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
@@ -91,7 +88,11 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
 
 static void log_eject (EjecterPlugin *ej, GDrive *drive)
 {
-    ej->ejdrives = g_list_append (ej->ejdrives, drive);
+    EjectList *el;
+    el = g_new (EjectList, 1);
+    el->drv = drive;
+    el->seq = -1;
+    ej->ejdrives = g_list_append (ej->ejdrives, el);
 }
 
 static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive)
@@ -100,13 +101,30 @@ static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive)
     gboolean ejected = FALSE;
     for (l = ej->ejdrives; l != NULL; l = l->next)
     {
-        if (G_DRIVE (l->data) == drive)
+        EjectList *el = (EjectList *) l->data;
+        if (el->drv == drive)
         {
             ejected = TRUE;
-            ej->ejdrives = g_list_remove (ej->ejdrives, drive);
+            if (el->seq != -1) lxpanel_notify_clear (el->seq);
+            ej->ejdrives = g_list_remove (ej->ejdrives, el);
+            g_free (el);
         }
     }
     return ejected;
+}
+
+static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, unsigned int seq)
+{
+    GList *l;
+    for (l = ej->ejdrives; l != NULL; l = l->next)
+    {
+        EjectList *el = (EjectList *) l->data;
+        if (el->drv == drive)
+        {
+            el->seq = seq;
+            return;
+        }
+    }
 }
 
 static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
@@ -166,10 +184,8 @@ static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("DRIVE REMOVED %s %d", g_drive_get_name (drive));
 
-    if (was_ejected (ej, drive))
-        hide_message (ej);
-    else
-        show_message (ej, _("Drive was removed without ejecting"), _("Please use menu to eject before removal"));
+    if (!was_ejected (ej, drive))
+        lxpanel_notify (ej->panel, _("Drive was removed without ejecting\nPlease use menu to eject before removal"));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -189,7 +205,7 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     GDrive *drv = (GDrive *) source_object;
-    char buffer[128];
+    char *buffer;
     GError *err = NULL;
 
     g_drive_eject_with_operation_finish (drv, res, &err);
@@ -197,123 +213,18 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
     if (err == NULL)
     {
         DEBUG ("EJECT COMPLETE");
-        sprintf (buffer, _("%s has been ejected"), g_drive_get_name (drv));
-        show_message (ej, buffer, _("It is now safe to remove the device"));
+        buffer = g_strdup_printf (_("%s has been ejected\nIt is now safe to remove the device"), g_drive_get_name (drv));
+        add_seq_for_drive (ej, drv, lxpanel_notify (ej->panel, buffer));
     }
     else
     {
         DEBUG ("EJECT FAILED");
-        sprintf (buffer, _("Failed to eject %s"), g_drive_get_name (drv));
-        show_message (ej, buffer, err->message);
+        buffer = g_strdup_printf (_("Failed to eject %s\n%s"), g_drive_get_name (drv), err->message);
+        lxpanel_notify (ej->panel, buffer);
     }
+    g_free (buffer);
 }
 
-/* The functions below are a copy of those in GTK+2.0's gtktooltip.c, as for some reason, you cannot */
-/* manually cause a tooltip to appear with a simple function call. I have no idea why not... */
-#if !GTK_CHECK_VERSION(3, 0, 0)
-static void on_screen_changed (GtkWidget *window)
-{
-	GdkScreen *screen;
-	GdkColormap *cmap;
-
-	screen = gtk_widget_get_screen (window);
-	cmap = NULL;
-	if (gdk_screen_is_composited (screen)) cmap = gdk_screen_get_rgba_colormap (screen);
-	if (cmap == NULL) cmap = gdk_screen_get_rgb_colormap (screen);
-
-	gtk_widget_set_colormap (window, cmap);
-}
-
-static void gtk_tooltip_window_style_set (EjecterPlugin *ej)
-{
-    gtk_alignment_set_padding (GTK_ALIGNMENT (ej->alignment), ej->popup->style->ythickness, ej->popup->style->ythickness,
-        ej->popup->style->xthickness, ej->popup->style->xthickness);
-    gtk_box_set_spacing (GTK_BOX (ej->box), ej->popup->style->xthickness);
-    gtk_widget_queue_draw (ej->popup);
-}
-
-static void draw_round_rect (cairo_t *cr, gdouble aspect, gdouble x, gdouble y, gdouble corner_radius, gdouble width, gdouble height)
-{
-    gdouble radius = corner_radius / aspect;
-    cairo_move_to (cr, x + radius, y);
-    cairo_line_to (cr, x + width - radius, y);
-    cairo_arc (cr, x + width - radius, y + radius, radius, -90.0f * G_PI / 180.0f, 0.0f * G_PI / 180.0f);
-    cairo_line_to (cr, x + width, y + height - radius);
-    cairo_arc (cr, x + width - radius, y + height - radius, radius, 0.0f * G_PI / 180.0f, 90.0f * G_PI / 180.0f);
-    cairo_line_to (cr, x + radius, y + height);
-    cairo_arc (cr, x + radius, y + height - radius, radius,  90.0f * G_PI / 180.0f, 180.0f * G_PI / 180.0f);
-    cairo_line_to (cr, x, y + radius);
-    cairo_arc (cr, x + radius, y + radius, radius, 180.0f * G_PI / 180.0f, 270.0f * G_PI / 180.0f);
-    cairo_close_path (cr);
-}
-
-static void fill_background (GtkWidget *widget, cairo_t *cr, GdkColor *bg_color, GdkColor *border_color, guchar alpha)
-{
-    gint tooltip_radius;
-
-    if (!gtk_widget_is_composited (widget)) alpha = 255;
-
-    gtk_widget_style_get (widget, "tooltip-radius", &tooltip_radius,  NULL);
-
-    cairo_set_operator (cr, CAIRO_OPERATOR_CLEAR);
-    cairo_paint (cr);
-    cairo_set_operator (cr, CAIRO_OPERATOR_OVER);
-
-    draw_round_rect (cr, 1.0, 0.5, 0.5, tooltip_radius, widget->allocation.width - 1,  widget->allocation.height - 1);
-
-    cairo_set_source_rgba (cr, (float) bg_color->red / 65535.0, (float) bg_color->green / 65535.0, (float) bg_color->blue / 65535.0, (float) alpha / 255.0);
-    cairo_fill_preserve (cr);
-
-    cairo_set_source_rgba (cr, (float) border_color->red / 65535.0, (float) border_color->green / 65535.0, (float) border_color->blue / 65535.0, (float) alpha / 255.0);
-    cairo_set_line_width (cr, 1.0);
-    cairo_stroke (cr);
-}
-
-static void update_shape (EjecterPlugin *ej)
-{
-    GdkBitmap *mask;
-    cairo_t *cr;
-    gint width, height, tooltip_radius;
-
-    gtk_widget_style_get (ej->popup, "tooltip-radius", &tooltip_radius, NULL);
-
-    if (tooltip_radius == 0 || gtk_widget_is_composited (ej->popup))
-    {
-        gtk_widget_shape_combine_mask (ej->popup, NULL, 0, 0);
-        return;
-    }
-
-    gtk_window_get_size (GTK_WINDOW (ej->popup), &width, &height);
-    mask = (GdkBitmap *) gdk_pixmap_new (NULL, width, height, 1);
-    cr = gdk_cairo_create (mask);
-
-    fill_background (ej->popup, cr, &ej->popup->style->black, &ej->popup->style->black, 255);
-    gtk_widget_shape_combine_mask (ej->popup, mask, 0, 0);
-
-    cairo_destroy (cr);
-    g_object_unref (mask);
-}
-
-static gboolean gtk_tooltip_paint_window (EjecterPlugin *ej)
-{
-    guchar tooltip_alpha;
-    gint tooltip_radius;
-
-    gtk_widget_style_get (ej->popup, "tooltip-alpha", &tooltip_alpha, "tooltip-radius", &tooltip_radius, NULL);
-
-    if (tooltip_alpha != 255 || tooltip_radius != 0)
-    {
-        cairo_t *cr = gdk_cairo_create (ej->popup->window);
-        fill_background (ej->popup, cr, &ej->popup->style->bg [GTK_STATE_NORMAL], &ej->popup->style->bg [GTK_STATE_SELECTED], tooltip_alpha);
-        cairo_destroy (cr);
-        update_shape (ej);
-    }
-    else gtk_paint_flat_box (ej->popup->style, ej->popup->window, GTK_STATE_NORMAL, GTK_SHADOW_OUT, NULL, ej->popup, "tooltip",
-        0, 0, ej->popup->allocation.width, ej->popup->allocation.height);
-
-    return FALSE;
-}
-#endif
 
 /* Ejecter functions */
 
@@ -323,81 +234,6 @@ static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gbool
     /* Determine the coordinates. */
     lxpanel_plugin_popup_set_position_helper (ej->panel, ej->plugin, GTK_WIDGET(menu), px, py);
     *push_in = TRUE;
-}
-
-static gboolean ejecter_window_click (GtkWidget * widget, GdkEventButton * event, EjecterPlugin *ej)
-{
-    hide_message (ej);
-    return FALSE;
-}
-
-static void show_message (EjecterPlugin *ej, char *str1, char *str2)
-{
-    GtkWidget *item;
-    gint x, y;
-
-    hide_menu (ej);
-    hide_message (ej);
-
-    /*
-     * In order to get a window which looks exactly like a system tooltip, client-side decoration
-     * must be requested for it. This cannot be done by any public API call in GTK+3.24, but there is an
-     * internal call _gtk_window_request_csd which sets the csd_requested flag in the class' private data.
-     * The code below is compatible with a hacked GTK+3 library which uses GTK_WINDOW_POPUP + 1 as the type
-     * for a window with CSD requested. It should also not fall over with the standard library...
-     */
-    ej->popup = gtk_window_new (GTK_WINDOW_POPUP + 1);
-    if (!ej->popup) ej->popup = gtk_window_new (GTK_WINDOW_POPUP);
-    gtk_window_set_type_hint (GTK_WINDOW (ej->popup), GDK_WINDOW_TYPE_HINT_TOOLTIP);
-    gtk_window_set_resizable (GTK_WINDOW (ej->popup), FALSE);
-
-#if GTK_CHECK_VERSION(3, 0, 0)
-    GtkStyleContext *context = gtk_widget_get_style_context (ej->popup);
-    gtk_style_context_add_class (context, GTK_STYLE_CLASS_TOOLTIP);
-
-    ej->box = gtk_box_new (GTK_ORIENTATION_VERTICAL, 5);
-    gtk_container_add (GTK_CONTAINER (ej->popup), ej->box);
-#else
-    on_screen_changed (ej->popup);
-    gtk_widget_set_app_paintable (ej->popup, TRUE);
-    gtk_widget_set_name (ej->popup, "gtk-tooltip");
-
-    ej->alignment = gtk_alignment_new (0.5, 0.5, 1.0, 1.0);
-    gtk_container_add (GTK_CONTAINER (ej->popup), ej->alignment);
-    gtk_widget_show (ej->alignment);
-
-    g_signal_connect_swapped (ej->popup, "style-set", G_CALLBACK (gtk_tooltip_window_style_set), ej);
-    g_signal_connect_swapped (ej->popup, "expose-event", G_CALLBACK (gtk_tooltip_paint_window), ej);
-
-    ej->box = gtk_vbox_new (FALSE, ej->popup->style->xthickness);
-    gtk_container_add (GTK_CONTAINER (ej->alignment), ej->box);
-#endif
-
-    item = gtk_label_new (str1);
-    gtk_box_pack_start (GTK_BOX (ej->box), item, FALSE, FALSE, 0);
-    item = gtk_label_new (str2);
-    gtk_box_pack_start (GTK_BOX (ej->box), item, FALSE, FALSE, 0);
-
-    gtk_widget_show_all (ej->popup);
-    gtk_widget_hide (ej->popup);
-    lxpanel_plugin_popup_set_position_helper (ej->panel, ej->tray_icon, ej->popup, &x, &y);
-    gdk_window_move (gtk_widget_get_window (ej->popup), x, y);
-    gdk_window_set_events (gtk_widget_get_window (ej->popup), gdk_window_get_events (gtk_widget_get_window (ej->popup)) | GDK_BUTTON_PRESS_MASK);
-    g_signal_connect (G_OBJECT(ej->popup), "button-press-event", G_CALLBACK (ejecter_window_click), ej);
-    gtk_window_present (GTK_WINDOW (ej->popup));
-    ej->hide_timer = g_timeout_add (HIDE_TIME_MS, (GSourceFunc) hide_message, ej);
-}
-
-static gboolean hide_message (EjecterPlugin *ej)
-{
-    if (ej->hide_timer) g_source_remove (ej->hide_timer);
-    if (ej->popup)
-    {
-        gtk_widget_destroy (ej->popup);
-        ej->popup = NULL;
-    }
-    ej->hide_timer = 0;
-    return FALSE;
 }
 
 static gboolean is_drive_mounted (GDrive *d)
@@ -447,7 +283,6 @@ static gboolean idle_icon_update (gpointer data)
 
 static void show_menu (EjecterPlugin *ej)
 {
-    hide_message (ej);
     hide_menu (ej);
 
     ej->menu = gtk_menu_new ();

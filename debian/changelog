@@ -1,3 +1,9 @@
+lxplug-ejecter (0.18) bullseye; urgency=medium
+
+  * Use lxpanel notification API
+
+ -- Simon Long <simon@raspberrypi.com>  Thu, 16 Sep 2021 15:43:50 +0100
+
 lxplug-ejecter (0.17) bullseye; urgency=medium
 
   * Add external eject command for use by piclone
