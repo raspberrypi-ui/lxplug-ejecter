@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-20 15:23+0000\n"
+"POT-Creation-Date: 2021-09-17 13:04+0100\n"
 "PO-Revision-Date: 2020-04-25 23:15+0200\n"
 "Last-Translator: Emanuele Goldoni <emanuele.goldoni@gmail.com>\n"
 "Language-Team: Italian\n"
@@ -17,43 +17,42 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../plugins/ejecter/ejecter.c:172
-msgid "Drive was removed without ejecting"
-msgstr "Il dispositivo è stato rimosso senza prima espellere"
+#: ../plugins/ejecter/ejecter.c:188
+msgid ""
+"Drive was removed without ejecting\n"
+"Please use menu to eject before removal"
+msgstr ""
+"Il dispositivo è stato rimosso senza prima espellere\n"
+"Per favore usa il menu per espellere prima di rimuovere"
 
-#: ../plugins/ejecter/ejecter.c:172
-msgid "Please use menu to eject before removal"
-msgstr "Per favore usa il menu per espellere prima di rimuovere"
+#: ../plugins/ejecter/ejecter.c:216
+msgid ""
+"%s has been ejected\n"
+"It is now safe to remove the device"
+msgstr ""
+"%s è stato rimosso con successo\n"
+"E' ora possibile rimuovere il dispositivo in sicurezza"
 
-#: ../plugins/ejecter/ejecter.c:200
-#, c-format
-msgid "%s has been ejected"
-msgstr "%s è stato rimosso con successo"
+#: ../plugins/ejecter/ejecter.c:222
+msgid ""
+"Failed to eject %s\n"
+"%s"
+msgstr ""
+"Espulsione di %s fallita\n"
+"%s"
 
-#: ../plugins/ejecter/ejecter.c:201
-msgid "It is now safe to remove the device"
-msgstr "E' ora possibile rimuovere il dispositivo in sicurezza"
-
-#: ../plugins/ejecter/ejecter.c:206
-#, c-format
-msgid "Failed to eject %s"
-msgstr "Espulsione di %s fallita"
-
-#: ../plugins/ejecter/ejecter.c:588
+#: ../plugins/ejecter/ejecter.c:471
 msgid "Select a drive in menu to eject safely"
 msgstr "Seleziona dal menu un volume da espellere in sicurezza"
 
-#: ../plugins/ejecter/ejecter.c:642 ../plugins/ejecter/ejecter.c:652
+#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
 msgid "Ejecter"
 msgstr "Espulsore"
 
-#: ../plugins/ejecter/ejecter.c:644
+#: ../plugins/ejecter/ejecter.c:532
 msgid "Hide icon when no devices"
 msgstr "Nascondi l'icona quando non ci sono dispositivi"
 
-#: ../plugins/ejecter/ejecter.c:653
+#: ../plugins/ejecter/ejecter.c:541
 msgid "Ejects mounted drives"
 msgstr "Espelli i volumi montati"
-
-#~ msgid "No ejectable devices"
-#~ msgstr "No ejectable devices"

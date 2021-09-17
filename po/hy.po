@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2019-11-20 15:23+0000\n"
+"POT-Creation-Date: 2021-09-17 13:04+0100\n"
 "PO-Revision-Date: 2017-03-06 16:38+0000\n"
 "Last-Translator:  <info@armath.am>\n"
 "Language-Team: Armenian\n"
@@ -17,43 +17,42 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../plugins/ejecter/ejecter.c:172
-msgid "Drive was removed without ejecting"
-msgstr "Կրիչն անջատվեց՝ առանց ապահով հեռացման"
+#: ../plugins/ejecter/ejecter.c:188
+msgid ""
+"Drive was removed without ejecting\n"
+"Please use menu to eject before removal"
+msgstr ""
+"Կրիչն անջատվեց՝ առանց ապահով հեռացման\n"
+"Անջատելուց առաջ մենյուից ապահով հեռացրեք սարքը"
 
-#: ../plugins/ejecter/ejecter.c:172
-msgid "Please use menu to eject before removal"
-msgstr "Անջատելուց առաջ մենյուից ապահով հեռացրեք սարքը"
+#: ../plugins/ejecter/ejecter.c:216
+msgid ""
+"%s has been ejected\n"
+"It is now safe to remove the device"
+msgstr ""
+"%s -ն հեռացված է\n"
+"Այժմ անվտանգ է սարքն հեռացնելու համար"
 
-#: ../plugins/ejecter/ejecter.c:200
-#, c-format
-msgid "%s has been ejected"
-msgstr "%s -ն հեռացված է"
+#: ../plugins/ejecter/ejecter.c:222
+msgid ""
+"Failed to eject %s\n"
+"%s"
+msgstr ""
+"%s հեռացումը ձախողվեց\n"
+"%s"
 
-#: ../plugins/ejecter/ejecter.c:201
-msgid "It is now safe to remove the device"
-msgstr "Այժմ անվտանգ է սարքն հեռացնելու համար"
-
-#: ../plugins/ejecter/ejecter.c:206
-#, c-format
-msgid "Failed to eject %s"
-msgstr "%s հեռացումը ձախողվեց"
-
-#: ../plugins/ejecter/ejecter.c:588
+#: ../plugins/ejecter/ejecter.c:471
 msgid "Select a drive in menu to eject safely"
 msgstr "Մենոյուից ընտրեք կրիչն անվտանգ հեռացնելու համար"
 
-#: ../plugins/ejecter/ejecter.c:642 ../plugins/ejecter/ejecter.c:652
+#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
 msgid "Ejecter"
 msgstr "Արտամղիչ"
 
-#: ../plugins/ejecter/ejecter.c:644
+#: ../plugins/ejecter/ejecter.c:532
 msgid "Hide icon when no devices"
 msgstr "Թաքցնել պատկերը, երբ սարքը բացակայում է"
 
-#: ../plugins/ejecter/ejecter.c:653
+#: ../plugins/ejecter/ejecter.c:541
 msgid "Ejects mounted drives"
 msgstr "Հեռացնում է տեղակայված կրիչները"
-
-#~ msgid "No ejectable devices"
-#~ msgstr "Հեռացնելու սարքեր չկան"

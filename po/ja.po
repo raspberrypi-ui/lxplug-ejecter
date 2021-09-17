@@ -7,7 +7,7 @@ msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-01-03 21:30+0900\n"
+"POT-Creation-Date: 2021-09-17 13:04+0100\n"
 "PO-Revision-Date: 2017-03-06 16:38+0000\n"
 "Last-Translator:  Akira Ouchi <akkiesoft@marokun.net>\n"
 "Language-Team: Japanese\n"
@@ -17,43 +17,42 @@ msgstr ""
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../plugins/ejecter/ejecter.c:169
-msgid "Drive was removed without ejecting"
-msgstr "ドライブが取り外しを実行する前に抜き取られました"
+#: ../plugins/ejecter/ejecter.c:188
+msgid ""
+"Drive was removed without ejecting\n"
+"Please use menu to eject before removal"
+msgstr ""
+"ドライブが取り外しを実行する前に抜き取られました\n"
+"抜き取る前にはメニューを使用して取り外してください"
 
-#: ../plugins/ejecter/ejecter.c:169
-msgid "Please use menu to eject before removal"
-msgstr "抜き取る前にはメニューを使用して取り外してください"
+#: ../plugins/ejecter/ejecter.c:216
+msgid ""
+"%s has been ejected\n"
+"It is now safe to remove the device"
+msgstr ""
+"%s が取り外されました\n"
+"安全にデバイスを抜き取ることができます"
 
-#: ../plugins/ejecter/ejecter.c:197
-#, c-format
-msgid "%s has been ejected"
-msgstr "%s が取り外されました"
+#: ../plugins/ejecter/ejecter.c:222
+msgid ""
+"Failed to eject %s\n"
+"%s"
+msgstr ""
+"%s の取り外しに失敗しました\n"
+"%s"
 
-#: ../plugins/ejecter/ejecter.c:198
-msgid "It is now safe to remove the device"
-msgstr "安全にデバイスを抜き取ることができます"
-
-#: ../plugins/ejecter/ejecter.c:203
-#, c-format
-msgid "Failed to eject %s"
-msgstr "%s の取り外しに失敗しました"
-
-#: ../plugins/ejecter/ejecter.c:555
+#: ../plugins/ejecter/ejecter.c:471
 msgid "Select a drive in menu to eject safely"
 msgstr "安全に取り外すドライブをメニューから選択します"
 
-#: ../plugins/ejecter/ejecter.c:612 ../plugins/ejecter/ejecter.c:622
+#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
 msgid "Ejecter"
 msgstr "Ejecter"
 
-#: ../plugins/ejecter/ejecter.c:614
+#: ../plugins/ejecter/ejecter.c:532
 msgid "Hide icon when no devices"
 msgstr "デバイスがないときはアイコンを隠す"
 
-#: ../plugins/ejecter/ejecter.c:623
+#: ../plugins/ejecter/ejecter.c:541
 msgid "Ejects mounted drives"
 msgstr "マウントされたドライブを取り外します"
-
-#~ msgid "No ejectable devices"
-#~ msgstr "No ejectable devices"
