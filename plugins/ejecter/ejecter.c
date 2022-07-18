@@ -274,13 +274,6 @@ static void update_icon (EjecterPlugin *ej)
     }
 }
 
-static gboolean idle_icon_update (gpointer data)
-{
-    EjecterPlugin *ej = (EjecterPlugin *) data;
-    update_icon (ej);
-    return FALSE;
-}
-
 static void show_menu (EjecterPlugin *ej)
 {
     hide_menu (ej);
@@ -398,9 +391,6 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
 
-#ifdef ENABLE_NLS
-    textdomain (GETTEXT_PACKAGE);
-#endif
     /* Show or hide the popup menu on left-click */
     if (event->button == 1)
     {
@@ -416,6 +406,7 @@ static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
     EjecterPlugin * ej = lxpanel_plugin_get_data (p);
 
     lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
+    update_icon (ej);
 }
 
 /* Handler for control message */
@@ -463,29 +454,24 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     setlocale (LC_ALL, "");
     bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
     bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-    textdomain (GETTEXT_PACKAGE);
 #endif
 
-    ej->tray_icon = gtk_image_new ();
-    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
-    gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
-    gtk_widget_set_visible (ej->tray_icon, TRUE);
-
-    /* Allocate top level widget and set into Plugin widget pointer. */
+    /* Allocate top level widget and set into plugin widget pointer. */
     ej->panel = panel;
-    ej->plugin = gtk_button_new ();
-    gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
-    g_signal_connect (ej->plugin, "button-press-event", G_CALLBACK(ejecter_button_press_event), NULL);
     ej->settings = settings;
+    ej->plugin = gtk_button_new ();
     lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
-    gtk_widget_add_events (ej->plugin, GDK_BUTTON_PRESS_MASK);
 
     /* Allocate icon as a child of top level */
-    gtk_container_add (GTK_CONTAINER(ej->plugin), ej->tray_icon);
+    ej->tray_icon = gtk_image_new ();
+    gtk_container_add (GTK_CONTAINER (ej->plugin), ej->tray_icon);
+    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
+    gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
 
-    /* Initialise data structures */
-    ej->monitor = g_volume_monitor_get ();
+    /* Set up button */
+    gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
 
+    /* Set up variables */
     if (config_setting_lookup_int (settings, "AutoHide", &val))
     {
         if (val == 1) ej->autohide = TRUE;
@@ -498,6 +484,8 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     ej->hide_timer = 0;
 
+    /* Get volume monitor and connect to events */
+    ej->monitor = g_volume_monitor_get ();
     g_signal_connect (ej->monitor, "volume-added", G_CALLBACK (handle_volume_in), ej);
     g_signal_connect (ej->monitor, "volume-removed", G_CALLBACK (handle_volume_out), ej);
     g_signal_connect (ej->monitor, "mount-added", G_CALLBACK (handle_mount_in), ej);
@@ -506,9 +494,8 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     g_signal_connect (ej->monitor, "drive-connected", G_CALLBACK (handle_drive_in), ej);
     g_signal_connect (ej->monitor, "drive-disconnected", G_CALLBACK (handle_drive_out), ej);
 
-    /* Show the widget, and return. */
+    /* Show the widget and return. */
     gtk_widget_show_all (ej->plugin);
-    g_idle_add (idle_icon_update, ej);
     return ej->plugin;
 }
 
@@ -524,16 +511,14 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
 static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data (p);
-#ifdef ENABLE_NLS
-    textdomain (GETTEXT_PACKAGE);
-#endif
+
     return lxpanel_generic_config_dlg(_("Ejecter"), panel,
         ejecter_apply_configuration, p,
         _("Hide icon when no devices"), &ej->autohide, CONF_TYPE_BOOL,
         NULL);
 }
 
-FM_DEFINE_MODULE(lxpanel_gtk, ejecter)
+FM_DEFINE_MODULE (lxpanel_gtk, ejecter)
 
 /* Plugin descriptor. */
 LXPanelPluginInit fm_module_init_lxpanel_gtk = {
