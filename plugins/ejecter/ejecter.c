@@ -182,7 +182,7 @@ static void handle_drive_in (GtkWidget *widget, GDrive *drive, gpointer data)
 static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
-    DEBUG ("DRIVE REMOVED %s %d", g_drive_get_name (drive));
+    DEBUG ("DRIVE REMOVED %s", g_drive_get_name (drive));
 
     if (!was_ejected (ej, drive))
         lxpanel_notify (ej->panel, _("Drive was removed without ejecting\nPlease use menu to eject before removal"));
