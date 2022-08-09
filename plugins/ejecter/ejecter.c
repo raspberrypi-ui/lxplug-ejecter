@@ -71,7 +71,7 @@ typedef struct {
 
 typedef struct {
     GDrive *drv;
-    unsigned int seq;
+    int seq;
 } EjectList;
 
 #define HIDE_TIME_MS 5000
@@ -80,7 +80,6 @@ typedef struct {
 
 static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
-static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data);
 static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
@@ -113,7 +112,7 @@ static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive)
     return ejected;
 }
 
-static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, unsigned int seq)
+static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, int seq)
 {
     GList *l;
     for (l = ej->ejdrives; l != NULL; l = l->next)
@@ -228,14 +227,6 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
 
 /* Ejecter functions */
 
-static void ejecter_popup_set_position (GtkMenu *menu, gint *px, gint *py, gboolean *push_in, gpointer data)
-{
-    EjecterPlugin *ej = (EjecterPlugin *) data;
-    /* Determine the coordinates. */
-    lxpanel_plugin_popup_set_position_helper (ej->panel, ej->plugin, GTK_WIDGET(menu), px, py);
-    *push_in = TRUE;
-}
-
 static gboolean is_drive_mounted (GDrive *d)
 {
     GList *viter, *vols = g_drive_get_volumes (d);
@@ -253,7 +244,6 @@ static void update_icon (EjecterPlugin *ej)
     {
         /* loop through all devices, checking for mounted volumes */
         GList *driter, *drives = g_volume_monitor_get_connected_drives (ej->monitor);
-        int count = 0;
 
         for (driter = drives; driter != NULL; driter = g_list_next (driter))
         {
@@ -265,11 +255,7 @@ static void update_icon (EjecterPlugin *ej)
                 return;
             }
         }
-#if !GTK_CHECK_VERSION(3, 0, 0)
-        gtk_widget_hide_all (ej->plugin);
-#else
         gtk_widget_hide (ej->plugin);
-#endif
         gtk_widget_set_sensitive (ej->plugin, FALSE);
     }
 }
@@ -279,9 +265,7 @@ static void show_menu (EjecterPlugin *ej)
     hide_menu (ej);
 
     ej->menu = gtk_menu_new ();
-#if GTK_CHECK_VERSION(3, 0, 0)
     gtk_menu_set_reserve_toggle_size (GTK_MENU (ej->menu), FALSE);
-#endif
 
     /* loop through all devices, creating menu items for them */
     GList *driter, *drives = g_volume_monitor_get_connected_drives (ej->monitor);
@@ -297,11 +281,7 @@ static void show_menu (EjecterPlugin *ej)
             dt->ej = ej;
             dt->drv = drv;
             g_signal_connect (item, "activate", G_CALLBACK (handle_eject_clicked), dt);
-#if GTK_CHECK_VERSION(3, 0, 0)
             gtk_menu_shell_append (GTK_MENU_SHELL (ej->menu), item);
-#else
-            gtk_menu_append (ej->menu, item);
-#endif
             count++;
         }
     }
@@ -309,11 +289,7 @@ static void show_menu (EjecterPlugin *ej)
     if (count)
     {
         gtk_widget_show_all (ej->menu);
-#if GTK_CHECK_VERSION(3, 0, 0)
         gtk_menu_popup_at_widget (GTK_MENU (ej->menu), ej->plugin, GDK_GRAVITY_NORTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
-#else
-        gtk_menu_popup (GTK_MENU (ej->menu), NULL, NULL, ejecter_popup_set_position, ej, 1, gtk_get_current_event_time ());
-#endif
     }
 }
 
@@ -332,11 +308,9 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     char buffer[1024];
     GList *vols;
     GVolume *v;
-    GtkWidget *item, *icon, *box, *label, *eject;
-    int volume_count;
+    GtkWidget *item, *icon, *eject;
 
     vols = g_drive_get_volumes (d);
-    volume_count = g_list_length (vols);
 
     sprintf (buffer, "%s (", g_drive_get_name (d));
     GList *iter;
@@ -352,34 +326,14 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
         }
     }
     strcat (buffer, ")");
-    icon = gtk_image_new_from_gicon (g_volume_get_icon (v), GTK_ICON_SIZE_BUTTON);
+    icon = gtk_image_new_from_gicon (g_drive_get_icon (d), GTK_ICON_SIZE_BUTTON);
 
-#if GTK_CHECK_VERSION(3, 0, 0)
     item = lxpanel_plugin_new_menu_item (ej->panel, buffer, 40, NULL);
     lxpanel_plugin_update_menu_icon (item, icon);
-#else
-    item = gtk_image_menu_item_new ();
-    box = gtk_hbox_new (FALSE, 4);
-    gtk_container_add (GTK_CONTAINER (item), box);
-
-    label = gtk_label_new (NULL);
-    gtk_label_set_max_width_chars (GTK_LABEL (label), 40);
-    gtk_label_set_ellipsize (GTK_LABEL (label), PANGO_ELLIPSIZE_END);
-    gtk_label_set_text (GTK_LABEL (label), buffer);
-    gtk_misc_set_alignment (GTK_MISC (label), 0.0, 0.5);
-    gtk_box_pack_start (GTK_BOX (box), label, TRUE, TRUE, 0);
-#endif
 
     eject = gtk_image_new ();
     lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
-#if GTK_CHECK_VERSION(3, 0, 0)
     lxpanel_plugin_append_menu_icon (item, eject);
-#else
-    gtk_box_pack_start (GTK_BOX (box), eject, FALSE, FALSE, 0);
-
-    gtk_image_menu_item_set_always_show_image (GTK_IMAGE_MENU_ITEM (item), TRUE);
-    gtk_image_menu_item_set_image (GTK_IMAGE_MENU_ITEM (item), icon);
-#endif
 
     gtk_widget_show_all (item);
 
@@ -506,6 +460,7 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
     if (ej->autohide) update_icon (ej);
     else gtk_widget_show_all (ej->plugin);
+    return FALSE;
 }
 
 static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
