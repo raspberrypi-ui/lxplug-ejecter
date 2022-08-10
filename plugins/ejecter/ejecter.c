@@ -42,7 +42,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) if(getenv("DEBUG_EJ"))g_message("ej: " fmt,##args)
 #else
-#define DEBUG
+#define DEBUG(fmt,args...)
 #endif
 
 /* Plug-in global data */
