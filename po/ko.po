@@ -1,0 +1,59 @@
+# English translations for PACKAGE package.
+# Copyright (C) 2017 THE PACKAGE'S COPYRIGHT HOLDER
+# This file is distributed under the same license as the PACKAGE package.
+#  <simon@raspberrypi.org>, 2017.
+#
+msgid ""
+msgstr ""
+"Project-Id-Version: \n"
+"Report-Msgid-Bugs-To: \n"
+"POT-Creation-Date: 2021-09-17 13:04+0100\n"
+"PO-Revision-Date: 2022-11-02 13:45+0900\n"
+"Last-Translator: Lee Yunseok <ironyunseok@protonmail.com>\n"
+"Language-Team: Korean\n"
+"Language: ko\n"
+"MIME-Version: 1.0\n"
+"Content-Type: text/plain; charset=UTF-8\n"
+"Content-Transfer-Encoding: 8bit\n"
+"Plural-Forms: nplurals=2; plural=(n != 1);\n"
+"X-Generator: Poedit 2.4.2\n"
+
+#: ../plugins/ejecter/ejecter.c:188
+msgid ""
+"Drive was removed without ejecting\n"
+"Please use menu to eject before removal"
+msgstr ""
+"드라이브가 강제 제거됨\n"
+"제거하기 전에 메뉴를 사용해 배출해야 안전함"
+
+#: ../plugins/ejecter/ejecter.c:216
+msgid ""
+"%s has been ejected\n"
+"It is now safe to remove the device"
+msgstr ""
+"%s 장치를 배출함\n"
+"안전하게 장치를 제거할 수 있음"
+
+#: ../plugins/ejecter/ejecter.c:222
+msgid ""
+"Failed to eject %s\n"
+"%s"
+msgstr ""
+"%s 장치 배출 실패\n"
+"%s"
+
+#: ../plugins/ejecter/ejecter.c:471
+msgid "Select a drive in menu to eject safely"
+msgstr "안전하게 제거할 장치를 선택"
+
+#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
+msgid "Ejecter"
+msgstr "드라이브 배출기"
+
+#: ../plugins/ejecter/ejecter.c:532
+msgid "Hide icon when no devices"
+msgstr "연결된 장치가 없을 때 아이콘 숨기기"
+
+#: ../plugins/ejecter/ejecter.c:541
+msgid "Ejects mounted drives"
+msgstr "마운트된 드라이브들을 배출"
