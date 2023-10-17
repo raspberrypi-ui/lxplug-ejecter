@@ -61,6 +61,7 @@ typedef struct {
     GVolumeMonitor *monitor;
     gboolean autohide;
     GList *ejdrives;
+    GList *mdrives;
     guint hide_timer;
 } EjecterPlugin;
 
@@ -112,6 +113,53 @@ static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive)
     return ejected;
 }
 
+static void log_mount (EjecterPlugin *ej, GMount *mount)
+{
+    GList *l;
+    GDrive *drv, *drive = g_mount_get_drive (mount);
+    for (l = ej->mdrives; l != NULL; l = l->next)
+    {
+        drv = (GDrive *) l->data;
+        if (drv == drive)
+        {
+            g_object_unref (drive);
+            return;
+        }
+    }
+
+    ej->mdrives = g_list_append (ej->mdrives, drive);
+    DEBUG ("MOUNTED DRIVE %s", g_drive_get_name (drive));
+}
+
+static void log_init_mounts (EjecterPlugin *ej)
+{
+    ej->mdrives = NULL;
+    GList *l, *mnts = g_volume_monitor_get_mounts (ej->monitor);
+    for (l = mnts; l != NULL; l = l->next)
+    {
+        log_mount (ej, (GMount *) l->data);
+        g_object_unref (l->data);
+    }
+    g_list_free (mnts);
+}
+
+static gboolean was_mounted (EjecterPlugin *ej, GDrive *drive)
+{
+    GList *l;
+    GDrive *drv;
+    for (l = ej->mdrives; l != NULL; l = l->next)
+    {
+        drv = (GDrive *) l->data;
+        if (drv == drive)
+        {
+            ej->mdrives = g_list_remove (ej->mdrives, drv);
+            g_object_unref (drv);
+            return TRUE;
+        }
+    }
+    return FALSE;
+}
+
 static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, int seq)
 {
     GList *l;
@@ -131,6 +179,7 @@ static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("MOUNT ADDED %s", g_mount_get_name (mount));
 
+    log_mount (ej, mount);
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
 }
@@ -183,7 +232,7 @@ static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("DRIVE REMOVED %s", g_drive_get_name (drive));
 
-    if (!was_ejected (ej, drive))
+    if (was_mounted (ej, drive) && !was_ejected (ej, drive))
         lxpanel_notify (ej->panel, _("Drive was removed without ejecting\nPlease use menu to eject before removal"));
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
@@ -447,6 +496,8 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     g_signal_connect (ej->monitor, "mount-pre-unmount", G_CALLBACK (handle_mount_pre), ej);
     g_signal_connect (ej->monitor, "drive-connected", G_CALLBACK (handle_drive_in), ej);
     g_signal_connect (ej->monitor, "drive-disconnected", G_CALLBACK (handle_drive_out), ej);
+
+    log_init_mounts (ej);
 
     /* Show the widget and return. */
     gtk_widget_show_all (ej->plugin);
