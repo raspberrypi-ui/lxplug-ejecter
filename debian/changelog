@@ -1,3 +1,9 @@
+lxplug-ejecter (0.23) bookworm; urgency=medium
+
+  * Fix menu position
+
+ -- Simon Long <simon@raspberrypi.com>  Fri, 22 Nov 2024 14:35:38 +0000
+
 lxplug-ejecter (0.22) bookworm; urgency=medium
 
   * Suppress removed warnings when no volumes mounted
