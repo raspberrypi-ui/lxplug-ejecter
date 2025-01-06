@@ -30,16 +30,21 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <stdlib.h>
 #include <string.h>
 #include <glib/gi18n.h>
-
 #include <gio/gio.h>
 
 #ifdef LXPLUG
 #include "plugin.h"
+#define wrap_new_menu_item(plugin,text,maxlen,icon) lxpanel_plugin_new_menu_item(plugin->panel,text,maxlen,icon)
+#define wrap_set_menu_icon(plugin,image,icon) lxpanel_plugin_set_menu_icon(plugin->panel,image,icon)
+#define wrap_set_taskbar_icon(plugin,image,icon) lxpanel_plugin_set_taskbar_icon(plugin->panel,image,icon)
 #else
 #include "lxutils.h"
 #define lxpanel_notify(panel,msg) lxpanel_notify(msg)
 #define lxpanel_plugin_update_menu_icon(item,icon) update_menu_icon(item,icon)
 #define lxpanel_plugin_append_menu_icon(item,icon) append_menu_icon(item,icon)
+#define wrap_new_menu_item(plugin,text,maxlen,icon) new_menu_item(text,maxlen,icon,plugin->icon_size)
+#define wrap_set_menu_icon(plugin,image,icon) set_menu_icon(image,icon,plugin->icon_size)
+#define wrap_set_taskbar_icon(plugin,image,icon) set_taskbar_icon(image,icon,plugin->icon_size)
 #endif
 
 #define DEBUG_ON
@@ -373,19 +378,11 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     strcat (buffer, ")");
     icon = gtk_image_new_from_gicon (g_drive_get_icon (d), GTK_ICON_SIZE_BUTTON);
 
-#ifdef LXPLUG
-    item = lxpanel_plugin_new_menu_item (ej->panel, buffer, 40, NULL);
-#else
-    item = new_menu_item (buffer, 40, NULL, ej->icon_size);
-#endif
+    item = wrap_new_menu_item (ej, buffer, 40, NULL);
     lxpanel_plugin_update_menu_icon (item, icon);
 
     eject = gtk_image_new ();
-#ifdef LXPLUG
-    lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
-#else
-    set_menu_icon (eject, "media-eject", ej->icon_size);
-#endif
+    wrap_set_menu_icon (ej, eject, "media-eject");
     lxpanel_plugin_append_menu_icon (item, eject);
 
     gtk_widget_show_all (item);
@@ -436,14 +433,9 @@ static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
 #else
 void ej_update_display (EjecterPlugin * ej)
 {
-
 #endif
 
-#ifdef LXPLUG
-    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
-#else
-    set_taskbar_icon (ej->tray_icon, "media-eject", ej->icon_size);
-#endif
+    wrap_set_taskbar_icon (ej, ej->tray_icon, "media-eject");
     update_icon (ej);
 }
 
@@ -512,11 +504,7 @@ void ej_init (EjecterPlugin *ej)
     /* Allocate icon as a child of top level */
     ej->tray_icon = gtk_image_new ();
     gtk_container_add (GTK_CONTAINER (ej->plugin), ej->tray_icon);
-#ifdef LXPLUG
-    lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
-#else
-    set_taskbar_icon (ej->tray_icon, "media-eject", ej->icon_size);
-#endif
+    wrap_set_taskbar_icon (ej, ej->tray_icon, "media-eject");
     gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
 
     /* Set up button */
@@ -524,7 +512,6 @@ void ej_init (EjecterPlugin *ej)
 #ifndef LXPLUG
     g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_press_event), ej);
 #endif
-
 
 #ifndef LXPLUG
     /* Set up long press */
