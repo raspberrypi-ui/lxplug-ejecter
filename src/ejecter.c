@@ -478,27 +478,8 @@ void ejecter_destructor (gpointer user_data)
     g_free (ej);
 }
 
-/* Plugin constructor. */
-#ifdef LXPLUG
-static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *settings)
-{
-    /* Allocate and initialize plugin context */
-    EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
-
-    setlocale (LC_ALL, "");
-    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
-    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-
-    /* Allocate top level widget and set into plugin widget pointer. */
-    ej->panel = panel;
-    ej->settings = settings;
-    ej->plugin = gtk_button_new ();
-    lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
-#else
 void ej_init (EjecterPlugin *ej)
 {
-#endif
-
     /* Allocate icon as a child of top level */
     ej->tray_icon = gtk_image_new ();
     gtk_container_add (GTK_CONTAINER (ej->plugin), ej->tray_icon);
@@ -509,9 +490,7 @@ void ej_init (EjecterPlugin *ej)
     gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
 #ifndef LXPLUG
     g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_press_event), ej);
-#endif
 
-#ifndef LXPLUG
     /* Set up long press */
     ej->gesture = gtk_gesture_long_press_new (ej->plugin);
     gtk_gesture_single_set_touch_only (GTK_GESTURE_SINGLE (ej->gesture), touch_only);
@@ -523,7 +502,7 @@ void ej_init (EjecterPlugin *ej)
     /* Set up variables */
 #ifdef LXPLUG
     int val;
-    if (config_setting_lookup_int (settings, "AutoHide", &val))
+    if (config_setting_lookup_int (ej->settings, "AutoHide", &val))
     {
         if (val == 1) ej->autohide = TRUE;
         else ej->autohide = FALSE;
@@ -550,11 +529,30 @@ void ej_init (EjecterPlugin *ej)
 
     /* Show the widget and return. */
     gtk_widget_show_all (ej->plugin);
-#ifdef LXPLUG
-    return ej->plugin;
-#endif
 }
+
 #ifdef LXPLUG
+/* Plugin constructor. */
+static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *settings)
+{
+    /* Allocate and initialize plugin context */
+    EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
+
+    setlocale (LC_ALL, "");
+    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+
+    /* Allocate top level widget and set into plugin widget pointer. */
+    ej->panel = panel;
+    ej->settings = settings;
+    ej->plugin = gtk_button_new ();
+    lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
+
+    ej_init (ej);
+
+    return ej->plugin;
+}
+
 static gboolean ejecter_apply_configuration (gpointer user_data)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data ((GtkWidget *) user_data);
