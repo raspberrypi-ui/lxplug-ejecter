@@ -25,9 +25,6 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 */
 
-#ifdef HAVE_CONFIG_H
-#include <config.h>
-#endif
 #include <errno.h>
 #include <locale.h>
 #include <stdlib.h>
@@ -39,7 +36,10 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #ifdef LXPLUG
 #include "plugin.h"
 #else
-#include "ejecter.h"
+#include "lxutils.h"
+#define lxpanel_notify(panel,msg) lxpanel_notify(msg)
+#define lxpanel_plugin_update_menu_icon(item,icon) update_menu_icon(item,icon)
+#define lxpanel_plugin_append_menu_icon(item,icon) append_menu_icon(item,icon)
 #endif
 
 #define DEBUG_ON
@@ -50,26 +50,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /* Plug-in global data */
-
-#ifdef LXPLUG
-typedef struct {
-
-    GtkWidget *plugin;              /* Back pointer to the widget */
-    LXPanel *panel;                 /* Back pointer to panel */
-    GtkWidget *tray_icon;           /* Displayed image */
-    config_setting_t *settings;     /* Plugin settings */
-    GtkWidget *popup;               /* Popup message */
-    GtkWidget *alignment;           /* Alignment object in popup message */
-    GtkWidget *box;                 /* Vbox in popup message */
-    GtkWidget *menu;                /* Popup menu */
-    GtkWidget *empty;               /* Menuitem shown when no devices */
-    GVolumeMonitor *monitor;
-    gboolean autohide;
-    GList *ejdrives;
-    GList *mdrives;
-    guint hide_timer;
-} EjecterPlugin;
-#endif
+#include "ejecter.h"
 
 typedef struct {
     EjecterPlugin *ej;
@@ -239,11 +220,7 @@ static void handle_drive_out (GtkWidget *, GDrive *drive, gpointer data)
     DEBUG ("DRIVE REMOVED %s", g_drive_get_name (drive));
 
     if (was_mounted (ej, drive) && !was_ejected (ej, drive))
-#ifdef LXPLUG
         lxpanel_notify (ej->panel, _("Drive was removed without ejecting\nPlease use menu to eject before removal"));
-#else
-        lxpanel_notify (_("Drive was removed without ejecting\nPlease use menu to eject before removal"));
-#endif
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
@@ -272,21 +249,13 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
     {
         DEBUG ("EJECT COMPLETE");
         buffer = g_strdup_printf (_("%s has been ejected\nIt is now safe to remove the device"), g_drive_get_name (drv));
-#ifdef LXPLUG
         add_seq_for_drive (ej, drv, lxpanel_notify (ej->panel, buffer));
-#else
-        add_seq_for_drive (ej, drv, lxpanel_notify (buffer));
-#endif
     }
     else
     {
         DEBUG ("EJECT FAILED");
         buffer = g_strdup_printf (_("Failed to eject %s\n%s"), g_drive_get_name (drv), err->message);
-#ifdef LXPLUG
         lxpanel_notify (ej->panel, buffer);
-#else
-        lxpanel_notify (buffer);
-#endif
     }
     g_free (buffer);
 }
@@ -406,20 +375,18 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
 
 #ifdef LXPLUG
     item = lxpanel_plugin_new_menu_item (ej->panel, buffer, 40, NULL);
-    lxpanel_plugin_update_menu_icon (item, icon);
 #else
     item = new_menu_item (buffer, 40, NULL, ej->icon_size);
-    update_menu_icon (item, icon);
 #endif
+    lxpanel_plugin_update_menu_icon (item, icon);
 
     eject = gtk_image_new ();
 #ifdef LXPLUG
     lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
-    lxpanel_plugin_append_menu_icon (item, eject);
 #else
     set_menu_icon (eject, "media-eject", ej->icon_size);
-    append_menu_icon (item, eject);
 #endif
+    lxpanel_plugin_append_menu_icon (item, eject);
 
     gtk_widget_show_all (item);
 
@@ -443,8 +410,6 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
 #else
 static void ejecter_button_press_event (GtkWidget *, EjecterPlugin * ej)
 {
-    //EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
-
     /* Show or hide the popup menu on left-click */
     if (pressed != PRESS_LONG) show_menu (ej);
     pressed = PRESS_NONE;
@@ -529,13 +494,10 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 {
     /* Allocate and initialize plugin context */
     EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
-    int val;
 
-#ifdef ENABLE_NLS
     setlocale (LC_ALL, "");
     bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
     bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
-#endif
 
     /* Allocate top level widget and set into plugin widget pointer. */
     ej->panel = panel;
@@ -575,6 +537,7 @@ void ej_init (EjecterPlugin *ej)
 
     /* Set up variables */
 #ifdef LXPLUG
+    int val;
     if (config_setting_lookup_int (settings, "AutoHide", &val))
     {
         if (val == 1) ej->autohide = TRUE;

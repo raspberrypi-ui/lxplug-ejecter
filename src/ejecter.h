@@ -1,16 +1,14 @@
-#include "lxutils.h"
-
-/* Plug-in global data */
-
 typedef struct {
-
-    GtkWidget *plugin;              /* Back pointer to the widget */
-    //LXPanel *panel;                 /* Back pointer to panel */
-    GtkWidget *tray_icon;           /* Displayed image */
-    //config_setting_t *settings;     /* Plugin settings */
-    int icon_size;                      /* Variables used under wf-panel */
+#ifdef LXPLUG
+    LXPanel *panel;                 /* Back pointer to panel */
+    config_setting_t *settings;     /* Plugin settings */
+#else
+    int icon_size;                  /* Variables used under wf-panel */
     gboolean bottom;
     GtkGesture *gesture;
+#endif
+    GtkWidget *plugin;              /* Back pointer to the widget */
+    GtkWidget *tray_icon;           /* Displayed image */
     GtkWidget *popup;               /* Popup message */
     GtkWidget *alignment;           /* Alignment object in popup message */
     GtkWidget *box;                 /* Vbox in popup message */
@@ -22,8 +20,3 @@ typedef struct {
     GList *mdrives;
     guint hide_timer;
 } EjecterPlugin;
-
-extern void ej_init (EjecterPlugin *ej);
-extern void ej_update_display (EjecterPlugin *ej);
-extern gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd);
-extern void ejecter_destructor (gpointer user_data);
