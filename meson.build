@@ -1,6 +1,7 @@
 project(
     'lxplug_ejecter',
     'c',
+    'cpp',
     version: '0.8.0',
     license: 'MIT',
     meson_version: '>=0.51.0',
@@ -11,14 +12,13 @@ project(
     ],
 )
 
-incdir = include_directories('/usr/include/lxpanel')
-
 share_dir = join_paths(get_option('prefix'), 'share')
-resource_dir = join_paths(share_dir, 'lxpanel')
+lresource_dir = join_paths(share_dir, 'lxpanel')
+wresource_dir = join_paths(share_dir, 'wf-panel-pi')
+metadata_dir = join_paths(wresource_dir, 'metadata')
 
 gettext_package = meson.project_name()
 
-add_project_arguments('-DPACKAGE_DATA_DIR="' + resource_dir + '"', language : [ 'c', 'cpp' ])
 add_project_arguments('-DGETTEXT_PACKAGE="' + gettext_package + '"', language : [ 'c', 'cpp' ])
 add_project_arguments('-DPACKAGE_LOCALE_DIR="' + share_dir + '/locale"', language : [ 'c', 'cpp' ])
 

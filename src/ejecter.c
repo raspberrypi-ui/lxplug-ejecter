@@ -36,7 +36,11 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include <gio/gio.h>
 
+#ifdef LXPLUG
 #include "plugin.h"
+#else
+#include "ejecter.h"
+#endif
 
 #define DEBUG_ON
 #ifdef DEBUG_ON
@@ -47,6 +51,7 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 /* Plug-in global data */
 
+#ifdef LXPLUG
 typedef struct {
 
     GtkWidget *plugin;              /* Back pointer to the widget */
@@ -64,6 +69,7 @@ typedef struct {
     GList *mdrives;
     guint hide_timer;
 } EjecterPlugin;
+#endif
 
 typedef struct {
     EjecterPlugin *ej;
@@ -174,7 +180,7 @@ static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, int seq)
     }
 }
 
-static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
+static void handle_mount_in (GtkWidget *, GMount *mount, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("MOUNT ADDED %s", g_mount_get_name (mount));
@@ -184,7 +190,7 @@ static void handle_mount_in (GtkWidget *widget, GMount *mount, gpointer data)
     update_icon (ej);
 }
 
-static void handle_mount_out (GtkWidget *widget, GMount *mount, gpointer data)
+static void handle_mount_out (GtkWidget *, GMount *mount, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("MOUNT REMOVED %s", g_mount_get_name (mount));
@@ -193,14 +199,14 @@ static void handle_mount_out (GtkWidget *widget, GMount *mount, gpointer data)
     update_icon (ej);
 }
 
-static void handle_mount_pre (GtkWidget *widget, GMount *mount, gpointer data)
+static void handle_mount_pre (GtkWidget *, GMount *mount, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("MOUNT PREUNMOUNT %s", g_mount_get_name (mount));
     log_eject (ej, g_mount_get_drive (mount));
 }
 
-static void handle_volume_in (GtkWidget *widget, GVolume *vol, gpointer data)
+static void handle_volume_in (GtkWidget *, GVolume *vol, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("VOLUME ADDED %s", g_volume_get_name (vol));
@@ -209,7 +215,7 @@ static void handle_volume_in (GtkWidget *widget, GVolume *vol, gpointer data)
     update_icon (ej);
 }
 
-static void handle_volume_out (GtkWidget *widget, GVolume *vol, gpointer data)
+static void handle_volume_out (GtkWidget *, GVolume *vol, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("VOLUME REMOVED %s", g_volume_get_name (vol));
@@ -218,7 +224,7 @@ static void handle_volume_out (GtkWidget *widget, GVolume *vol, gpointer data)
     update_icon (ej);
 }
 
-static void handle_drive_in (GtkWidget *widget, GDrive *drive, gpointer data)
+static void handle_drive_in (GtkWidget *, GDrive *drive, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("DRIVE ADDED %s", g_drive_get_name (drive));
@@ -227,19 +233,23 @@ static void handle_drive_in (GtkWidget *widget, GDrive *drive, gpointer data)
     update_icon (ej);
 }
 
-static void handle_drive_out (GtkWidget *widget, GDrive *drive, gpointer data)
+static void handle_drive_out (GtkWidget *, GDrive *drive, gpointer data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) data;
     DEBUG ("DRIVE REMOVED %s", g_drive_get_name (drive));
 
     if (was_mounted (ej, drive) && !was_ejected (ej, drive))
+#ifdef LXPLUG
         lxpanel_notify (ej->panel, _("Drive was removed without ejecting\nPlease use menu to eject before removal"));
+#else
+        lxpanel_notify (_("Drive was removed without ejecting\nPlease use menu to eject before removal"));
+#endif
 
     if (ej->menu && gtk_widget_get_visible (ej->menu)) show_menu (ej);
     update_icon (ej);
 }
 
-static void handle_eject_clicked (GtkWidget *widget, gpointer data)
+static void handle_eject_clicked (GtkWidget *, gpointer data)
 {
     CallbackData *dt = (CallbackData *) data;
     EjecterPlugin *ej = dt->ej;
@@ -262,13 +272,21 @@ static void eject_done (GObject *source_object, GAsyncResult *res, gpointer data
     {
         DEBUG ("EJECT COMPLETE");
         buffer = g_strdup_printf (_("%s has been ejected\nIt is now safe to remove the device"), g_drive_get_name (drv));
+#ifdef LXPLUG
         add_seq_for_drive (ej, drv, lxpanel_notify (ej->panel, buffer));
+#else
+        add_seq_for_drive (ej, drv, lxpanel_notify (buffer));
+#endif
     }
     else
     {
         DEBUG ("EJECT FAILED");
         buffer = g_strdup_printf (_("Failed to eject %s\n%s"), g_drive_get_name (drv), err->message);
+#ifdef LXPLUG
         lxpanel_notify (ej->panel, buffer);
+#else
+        lxpanel_notify (buffer);
+#endif
     }
     g_free (buffer);
 }
@@ -307,6 +325,11 @@ static void update_icon (EjecterPlugin *ej)
         gtk_widget_hide (ej->plugin);
         gtk_widget_set_sensitive (ej->plugin, FALSE);
     }
+    else
+    {
+        gtk_widget_show (ej->plugin);
+        gtk_widget_set_sensitive (ej->plugin, TRUE);
+    }
 }
 
 static void show_menu (EjecterPlugin *ej)
@@ -338,7 +361,11 @@ static void show_menu (EjecterPlugin *ej)
     if (count)
     {
         gtk_widget_show_all (ej->menu);
+#ifdef LXPLUG
         gtk_menu_popup_at_widget (GTK_MENU (ej->menu), ej->plugin, GDK_GRAVITY_SOUTH_WEST, GDK_GRAVITY_NORTH_WEST, NULL);
+#else
+        show_menu_with_kbd (ej->plugin, ej->menu);
+#endif
     }
 }
 
@@ -377,12 +404,22 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     strcat (buffer, ")");
     icon = gtk_image_new_from_gicon (g_drive_get_icon (d), GTK_ICON_SIZE_BUTTON);
 
+#ifdef LXPLUG
     item = lxpanel_plugin_new_menu_item (ej->panel, buffer, 40, NULL);
     lxpanel_plugin_update_menu_icon (item, icon);
+#else
+    item = new_menu_item (buffer, 40, NULL, ej->icon_size);
+    update_menu_icon (item, icon);
+#endif
 
     eject = gtk_image_new ();
+#ifdef LXPLUG
     lxpanel_plugin_set_menu_icon (ej->panel, eject, "media-eject");
     lxpanel_plugin_append_menu_icon (item, eject);
+#else
+    set_menu_icon (eject, "media-eject", ej->icon_size);
+    append_menu_icon (item, eject);
+#endif
 
     gtk_widget_show_all (item);
 
@@ -390,7 +427,8 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
 }
 
 /* Handler for menu button click */
-static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *event, LXPanel *panel)
+#ifdef LXPLUG
+static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *event, LXPanel *)
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
 
@@ -402,21 +440,57 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
     }
     else return FALSE;
 }
+#else
+static void ejecter_button_press_event (GtkWidget *, EjecterPlugin * ej)
+{
+    //EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
+
+    /* Show or hide the popup menu on left-click */
+    if (pressed != PRESS_LONG) show_menu (ej);
+    pressed = PRESS_NONE;
+}
+
+static void ejecter_gesture_pressed (GtkGestureLongPress *, gdouble x, gdouble y, EjecterPlugin *)
+{
+    pressed = PRESS_LONG;
+    press_x = x;
+    press_y = y;
+}
+
+static void ejecter_gesture_end (GtkGestureLongPress *, GdkEventSequence *, EjecterPlugin *ej)
+{
+    if (pressed == PRESS_LONG) pass_right_click (ej->plugin, press_x, press_y);
+}
+#endif
 
 /* Handler for system config changed message from panel */
+#ifdef LXPLUG
 static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (p);
+#else
+void ej_update_display (EjecterPlugin * ej)
+{
 
+#endif
+
+#ifdef LXPLUG
     lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
+#else
+    set_taskbar_icon (ej->tray_icon, "media-eject", ej->icon_size);
+#endif
     update_icon (ej);
 }
 
 /* Handler for control message */
+#ifdef LXPLUG
 static gboolean ejecter_control_msg (GtkWidget *plugin, const char *cmd)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
-
+#else
+gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd)
+{
+#endif
     DEBUG ("Eject command device %s\n", cmd);
 
     /* Loop through all drives until we find the one matching the supplied device */
@@ -438,15 +512,19 @@ static gboolean ejecter_control_msg (GtkWidget *plugin, const char *cmd)
 }
 
 /* Plugin destructor. */
-static void ejecter_destructor (gpointer user_data)
+void ejecter_destructor (gpointer user_data)
 {
     EjecterPlugin * ej = (EjecterPlugin *) user_data;
 
     /* Deallocate memory */
+#ifndef LXPLUG
+    if (ej->gesture) g_object_unref (ej->gesture);
+#endif
     g_free (ej);
 }
 
 /* Plugin constructor. */
+#ifdef LXPLUG
 static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *settings)
 {
     /* Allocate and initialize plugin context */
@@ -464,23 +542,46 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     ej->settings = settings;
     ej->plugin = gtk_button_new ();
     lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
+#else
+void ej_init (EjecterPlugin *ej)
+{
+#endif
 
     /* Allocate icon as a child of top level */
     ej->tray_icon = gtk_image_new ();
     gtk_container_add (GTK_CONTAINER (ej->plugin), ej->tray_icon);
+#ifdef LXPLUG
     lxpanel_plugin_set_taskbar_icon (panel, ej->tray_icon, "media-eject");
+#else
+    set_taskbar_icon (ej->tray_icon, "media-eject", ej->icon_size);
+#endif
     gtk_widget_set_tooltip_text (ej->tray_icon, _("Select a drive in menu to eject safely"));
 
     /* Set up button */
     gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
+#ifndef LXPLUG
+    g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_press_event), ej);
+#endif
+
+
+#ifndef LXPLUG
+    /* Set up long press */
+    ej->gesture = gtk_gesture_long_press_new (ej->plugin);
+    gtk_gesture_single_set_touch_only (GTK_GESTURE_SINGLE (ej->gesture), touch_only);
+    g_signal_connect (ej->gesture, "pressed", G_CALLBACK (ejecter_gesture_pressed), ej);
+    g_signal_connect (ej->gesture, "end", G_CALLBACK (ejecter_gesture_end), ej);
+    gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (ej->gesture), GTK_PHASE_BUBBLE);
+#endif
 
     /* Set up variables */
+#ifdef LXPLUG
     if (config_setting_lookup_int (settings, "AutoHide", &val))
     {
         if (val == 1) ej->autohide = TRUE;
         else ej->autohide = FALSE;
     }
     else ej->autohide = FALSE;
+#endif
 
     ej->popup = NULL;
     ej->menu = NULL;
@@ -501,9 +602,11 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 
     /* Show the widget and return. */
     gtk_widget_show_all (ej->plugin);
+#ifdef LXPLUG
     return ej->plugin;
+#endif
 }
-
+#ifdef LXPLUG
 static gboolean ejecter_apply_configuration (gpointer user_data)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data ((GtkWidget *) user_data);
@@ -537,3 +640,4 @@ LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .control = ejecter_control_msg,
     .gettext_package = GETTEXT_PACKAGE
 };
+#endif

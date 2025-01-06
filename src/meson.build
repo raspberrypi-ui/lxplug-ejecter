@@ -1,16 +1,46 @@
-name = 'ejecter'
+gtk = dependency('gtk+-3.0')
+gtkmm = dependency('gtkmm-3.0', version: '>=3.24')
 
-sources = files(
+lsources = files(
   'ejecter.c'
 )
 
-gtk = dependency('gtk+-3.0')
-deps = [ gtk ]
+ldeps = [ gtk ]
 
-shared_module(name, sources,
-        dependencies: deps,
+lincdir = include_directories('/usr/include/lxpanel')
+
+largs = [ '-DLXPLUG', '-DPACKAGE_DATA_DIR="' + lresource_dir + '"' ]
+
+shared_module('ejecter', lsources,
+        dependencies: ldeps,
         install: true,
         install_dir: get_option('libdir') / 'lxpanel/plugins',
-        include_directories : incdir,
+        c_args : largs,
+        include_directories : lincdir,
         name_prefix: ''
 )
+
+wsources = files(
+  'ejecter.cpp',
+  'ejecter.c'
+)
+
+wdeps = [ gtkmm ]
+
+wincdir = include_directories('/usr/include/wf-panel-pi')
+
+wargs = [ '-DPLUGIN_NAME="ejecter"', '-DPACKAGE_DATA_DIR="' + wresource_dir + '"' ]
+
+shared_module('libejecter', wsources,
+        dependencies: wdeps,
+        install: true,
+        install_dir: get_option('libdir') / 'wf-panel-pi',
+        cpp_args : wargs,
+        include_directories : wincdir,
+        name_prefix: ''
+)
+
+metadata = files(
+  'ejecter.xml'
+)
+install_data(metadata, install_dir: metadata_dir)
