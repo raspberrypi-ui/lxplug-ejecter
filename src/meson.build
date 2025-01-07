@@ -20,7 +20,7 @@ shared_module('ejecter', lsources,
         name_prefix: ''
 )
 
-wsources = lsources + 'ejecter.cpp',
+wsources = lsources + 'ejecter.cpp'
 
 wdeps = [ gtkmm ]
 
