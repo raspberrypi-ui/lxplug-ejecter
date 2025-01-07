@@ -35,6 +35,7 @@ shared_module('libejecter', wsources,
         dependencies: wdeps,
         install: true,
         install_dir: get_option('libdir') / 'wf-panel-pi',
+        c_args : wargs,
         cpp_args : wargs,
         include_directories : wincdir,
         name_prefix: ''

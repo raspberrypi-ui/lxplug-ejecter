@@ -32,6 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <glib/gi18n.h>
 #include <gio/gio.h>
 
+#include "ejecter.h"
+
 #ifdef LXPLUG
 #include "plugin.h"
 #define wrap_new_menu_item(plugin,text,maxlen,icon) lxpanel_plugin_new_menu_item(plugin->panel,text,maxlen,icon)
@@ -57,7 +59,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #endif
 
 /* Plug-in global data */
-#include "ejecter.h"
 
 typedef struct {
     EjecterPlugin *ej;
