@@ -32,8 +32,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <glib/gi18n.h>
 #include <gio/gio.h>
 
-#include "ejecter.h"
-
 #ifdef LXPLUG
 #include "plugin.h"
 #define wrap_new_menu_item(plugin,text,maxlen,icon) lxpanel_plugin_new_menu_item(plugin->panel,text,maxlen,icon)
@@ -50,6 +48,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #define wrap_set_taskbar_icon(plugin,image,icon) set_taskbar_icon(image,icon,plugin->icon_size)
 #define wrap_show_menu(plugin,menu) show_menu_with_kbd(plugin,menu)
 #endif
+
+#include "ejecter.h"
 
 #define DEBUG_ON
 #ifdef DEBUG_ON
@@ -426,7 +426,7 @@ static void ejecter_gesture_end (GtkGestureLongPress *, GdkEventSequence *, Ejec
 
 /* Handler for system config changed message from panel */
 #ifdef LXPLUG
-static void ejecter_configuration_changed (LXPanel *panel, GtkWidget *p)
+static void ejecter_configuration_changed (LXPanel *, GtkWidget *p)
 {
     EjecterPlugin * ej = lxpanel_plugin_get_data (p);
 #else
