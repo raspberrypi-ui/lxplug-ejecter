@@ -1,5 +1,5 @@
-/*
-Copyright (c) 2018 Raspberry Pi (Trading) Ltd.
+/*============================================================================
+Copyright (c) 2018-2025 Raspberry Pi Holdings Ltd.
 All rights reserved.
 
 Redistribution and use in source and binary forms, with or without
@@ -23,7 +23,7 @@ LOSS OF USE, DATA, OR PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND
 ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 (INCLUDING NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
-*/
+============================================================================*/
 
 #include <errno.h>
 #include <locale.h>
@@ -40,12 +40,18 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #include "ejecter.h"
 
+/*----------------------------------------------------------------------------*/
+/* Typedefs and macros */
+/*----------------------------------------------------------------------------*/
+
 #define DEBUG_ON
 #ifdef DEBUG_ON
 #define DEBUG(fmt,args...) if(getenv("DEBUG_EJ"))g_message("ej: " fmt,##args)
 #else
 #define DEBUG(fmt,args...)
 #endif
+
+#define HIDE_TIME_MS 5000
 
 /* Plug-in global data */
 
@@ -58,8 +64,6 @@ typedef struct {
     GDrive *drv;
     int seq;
 } EjectList;
-
-#define HIDE_TIME_MS 5000
 
 /* Prototypes */
 
@@ -378,7 +382,11 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
     return item;
 }
 
-/* Handler for menu button click */
+/*----------------------------------------------------------------------------*/
+/* wf-panel plugin functions                                                  */
+/*----------------------------------------------------------------------------*/
+
+/* Handler for button click */
 #ifdef LXPLUG
 static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *event, LXPanel *)
 {
@@ -400,6 +408,7 @@ static void ejecter_button_press_event (GtkWidget *, EjecterPlugin * ej)
     pressed = PRESS_NONE;
 }
 
+/* Handler for long press gesture */
 static void ejecter_gesture_pressed (GtkGestureLongPress *, gdouble x, gdouble y, EjecterPlugin *)
 {
     pressed = PRESS_LONG;
@@ -414,28 +423,15 @@ static void ejecter_gesture_end (GtkGestureLongPress *, GdkEventSequence *, Ejec
 #endif
 
 /* Handler for system config changed message from panel */
-#ifdef LXPLUG
-static void ejecter_configuration_changed (LXPanel *, GtkWidget *p)
-{
-    EjecterPlugin * ej = lxpanel_plugin_get_data (p);
-#else
 void ej_update_display (EjecterPlugin * ej)
 {
-#endif
-
     wrap_set_taskbar_icon (ej, ej->tray_icon, "media-eject");
     update_icon (ej);
 }
 
 /* Handler for control message */
-#ifdef LXPLUG
-static gboolean ejecter_control_msg (GtkWidget *plugin, const char *cmd)
-{
-    EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
-#else
 gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd)
 {
-#endif
     DEBUG ("Eject command device %s\n", cmd);
 
     /* Loop through all drives until we find the one matching the supplied device */
@@ -454,18 +450,6 @@ gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd)
     }
     g_list_free_full (drives, g_object_unref);
     return TRUE;
-}
-
-/* Plugin destructor. */
-void ejecter_destructor (gpointer user_data)
-{
-    EjecterPlugin * ej = (EjecterPlugin *) user_data;
-
-    /* Deallocate memory */
-#ifndef LXPLUG
-    if (ej->gesture) g_object_unref (ej->gesture);
-#endif
-    g_free (ej);
 }
 
 void ej_init (EjecterPlugin *ej)
@@ -489,8 +473,8 @@ void ej_init (EjecterPlugin *ej)
     gtk_event_controller_set_propagation_phase (GTK_EVENT_CONTROLLER (ej->gesture), GTK_PHASE_BUBBLE);
 #endif
 
-    /* Set up variables */
 #ifdef LXPLUG
+    /* Read settings */
     int val;
     if (config_setting_lookup_int (ej->settings, "AutoHide", &val))
     {
@@ -500,9 +484,9 @@ void ej_init (EjecterPlugin *ej)
     else ej->autohide = FALSE;
 #endif
 
+    /* Set up variables */
     ej->popup = NULL;
     ej->menu = NULL;
-
     ej->hide_timer = 0;
 
     /* Get volume monitor and connect to events */
@@ -521,8 +505,22 @@ void ej_init (EjecterPlugin *ej)
     gtk_widget_show_all (ej->plugin);
 }
 
+void ejecter_destructor (gpointer user_data)
+{
+    EjecterPlugin *ej = (EjecterPlugin *) user_data;
+
+#ifndef LXPLUG
+    if (ej->gesture) g_object_unref (ej->gesture);
+#endif
+    g_free (ej);
+}
+
+/*----------------------------------------------------------------------------*/
+/* LXPanel plugin functions                                                   */
+/*----------------------------------------------------------------------------*/
 #ifdef LXPLUG
-/* Plugin constructor. */
+
+/* Constructor */
 static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *settings)
 {
     /* Allocate and initialize plugin context */
@@ -543,9 +541,24 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     return ej->plugin;
 }
 
+/* Handler for system config changed message from panel */
+static void ejecter_configuration_changed (LXPanel *, GtkWidget *p)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data (p);
+    ej_update_display (ej);
+}
+
+/* Handler for control message */
+static gboolean ejecter_control (GtkWidget *plugin, const char *cmd)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
+    return ejecter_control_msg (ej, cmd);
+}
+
+/* Apply changes from config dialog */
 static gboolean ejecter_apply_configuration (gpointer user_data)
 {
-    EjecterPlugin *ej = lxpanel_plugin_get_data ((GtkWidget *) user_data);
+    EjecterPlugin *ej = lxpanel_plugin_get_data (GTK_WIDGET (user_data));
 
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
     if (ej->autohide) update_icon (ej);
@@ -553,6 +566,7 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
     return FALSE;
 }
 
+/* Display configuration dialog */
 static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data (p);
@@ -565,7 +579,7 @@ static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
 
 FM_DEFINE_MODULE (lxpanel_gtk, ejecter)
 
-/* Plugin descriptor. */
+/* Plugin descriptor */
 LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .name = N_("Ejecter"),
     .description = N_("Ejects mounted drives"),
@@ -573,7 +587,10 @@ LXPanelPluginInit fm_module_init_lxpanel_gtk = {
     .reconfigure = ejecter_configuration_changed,
     .button_press_event = ejecter_button_press_event,
     .config = ejecter_configure,
-    .control = ejecter_control_msg,
+    .control = ejecter_control,
     .gettext_package = GETTEXT_PACKAGE
 };
 #endif
+
+/* End of file */
+/*----------------------------------------------------------------------------*/
