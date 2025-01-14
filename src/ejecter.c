@@ -25,12 +25,8 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================================*/
 
-#include <errno.h>
 #include <locale.h>
-#include <stdlib.h>
-#include <string.h>
 #include <glib/gi18n.h>
-#include <gio/gio.h>
 
 #ifdef LXPLUG
 #include "plugin.h"
@@ -53,8 +49,6 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 
 #define HIDE_TIME_MS 5000
 
-/* Plug-in global data */
-
 typedef struct {
     EjecterPlugin *ej;
     GDrive *drv;
@@ -65,7 +59,13 @@ typedef struct {
     int seq;
 } EjectList;
 
-/* Prototypes */
+/*----------------------------------------------------------------------------*/
+/* Plug-in global data                                                        */
+/*----------------------------------------------------------------------------*/
+
+/*----------------------------------------------------------------------------*/
+/* Prototypes                                                                 */
+/*----------------------------------------------------------------------------*/
 
 static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
@@ -73,6 +73,10 @@ static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
+
+/*----------------------------------------------------------------------------*/
+/* Function definitions                                                       */
+/*----------------------------------------------------------------------------*/
 
 static void log_eject (EjecterPlugin *ej, GDrive *drive)
 {
