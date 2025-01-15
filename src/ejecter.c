@@ -391,27 +391,11 @@ static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d)
 /*----------------------------------------------------------------------------*/
 
 /* Handler for button click */
-#ifdef LXPLUG
-static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *event, LXPanel *)
+static void ejecter_button_clicked (GtkWidget *, EjecterPlugin * ej)
 {
-    EjecterPlugin * ej = lxpanel_plugin_get_data (widget);
-
-    /* Show or hide the popup menu on left-click */
-    if (event->button == 1)
-    {
-        show_menu (ej);
-        return TRUE;
-    }
-    else return FALSE;
+    CHECK_LONGPRESS
+    show_menu (ej);
 }
-#else
-static void ejecter_button_press_event (GtkWidget *, EjecterPlugin * ej)
-{
-    /* Show or hide the popup menu on left-click */
-    if (pressed != PRESS_LONG) show_menu (ej);
-    pressed = PRESS_NONE;
-}
-#endif
 
 /* Handler for system config changed message from panel */
 void ej_update_display (EjecterPlugin * ej)
@@ -454,7 +438,7 @@ void ej_init (EjecterPlugin *ej)
     /* Set up button */
     gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
 #ifndef LXPLUG
-    g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_press_event), ej);
+    g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_clicked), ej);
 
     /* Set up long press */
     ej->gesture = add_long_press (ej->plugin, NULL, NULL);
@@ -528,10 +512,22 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     return ej->plugin;
 }
 
-/* Handler for system config changed message from panel */
-static void ejecter_configuration_changed (LXPanel *, GtkWidget *p)
+/* Handler for button press */
+static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *event, LXPanel *)
 {
-    EjecterPlugin *ej = lxpanel_plugin_get_data (p);
+    EjecterPlugin *ej = lxpanel_plugin_get_data (widget);
+    if (event->button == 1)
+    {
+        ejecter_button_clicked (widget, ej);
+        return TRUE;
+    }
+    else return FALSE;
+}
+
+/* Handler for system config changed message from panel */
+static void ejecter_configuration_changed (LXPanel *, GtkWidget *plugin)
+{
+    EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
     ej_update_display (ej);
 }
 
@@ -548,18 +544,20 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
     EjecterPlugin *ej = lxpanel_plugin_get_data (GTK_WIDGET (user_data));
 
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
+
     if (ej->autohide) update_icon (ej);
     else gtk_widget_show_all (ej->plugin);
+
     return FALSE;
 }
 
 /* Display configuration dialog */
-static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *p)
+static GtkWidget *ejecter_configure (LXPanel *panel, GtkWidget *plugin)
 {
-    EjecterPlugin *ej = lxpanel_plugin_get_data (p);
+    EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
 
     return lxpanel_generic_config_dlg(_("Ejecter"), panel,
-        ejecter_apply_configuration, p,
+        ejecter_apply_configuration, plugin,
         _("Hide icon when no devices"), &ej->autohide, CONF_TYPE_BOOL,
         NULL);
 }
