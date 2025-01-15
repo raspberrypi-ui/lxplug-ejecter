@@ -457,7 +457,7 @@ void ej_init (EjecterPlugin *ej)
     g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_press_event), ej);
 
     /* Set up long press */
-    ej->gesture = add_long_press (ej->plugin);
+    ej->gesture = add_long_press (ej->plugin, NULL, NULL);
 #endif
 
 #ifdef LXPLUG
