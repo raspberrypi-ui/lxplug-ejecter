@@ -1,3 +1,9 @@
+pplug-ejecter (0.24) bookworm; urgency=medium
+
+  * First hybrid package version
+
+ -- Simon Long <simon@raspberrypi.com>  Thu, 16 Jan 2025 15:15:20 +0000
+
 lxplug-ejecter (0.23) bookworm; urgency=medium
 
   * Fix menu position
