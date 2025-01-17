@@ -429,6 +429,10 @@ gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd)
 
 void ej_init (EjecterPlugin *ej)
 {
+    setlocale (LC_ALL, "");
+    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
+    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
+
     /* Allocate icon as a child of top level */
     ej->tray_icon = gtk_image_new ();
     gtk_container_add (GTK_CONTAINER (ej->plugin), ej->tray_icon);
@@ -496,10 +500,6 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
 {
     /* Allocate and initialize plugin context */
     EjecterPlugin *ej = g_new0 (EjecterPlugin, 1);
-
-    setlocale (LC_ALL, "");
-    bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
-    bind_textdomain_codeset (GETTEXT_PACKAGE, "UTF-8");
 
     /* Allocate top level widget and set into plugin widget pointer. */
     ej->panel = panel;
