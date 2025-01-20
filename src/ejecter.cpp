@@ -90,6 +90,7 @@ void WayfireEjecter::init (Gtk::HBox *container)
     /* Setup callbacks */
     icon_size.set_callback (sigc::mem_fun (*this, &WayfireEjecter::icon_size_changed_cb));
     bar_pos.set_callback (sigc::mem_fun (*this, &WayfireEjecter::bar_pos_changed_cb));
+
     autohide.set_callback (sigc::mem_fun (*this, &WayfireEjecter::settings_changed_cb));
 
     settings_changed_cb ();

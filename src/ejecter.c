@@ -301,7 +301,7 @@ static void update_icon (EjecterPlugin *ej)
     }
     else
     {
-        gtk_widget_show (ej->plugin);
+        gtk_widget_show_all (ej->plugin);
         gtk_widget_set_sensitive (ej->plugin, TRUE);
     }
 }
@@ -448,17 +448,6 @@ void ej_init (EjecterPlugin *ej)
     ej->gesture = add_long_press (ej->plugin, NULL, NULL);
 #endif
 
-#ifdef LXPLUG
-    /* Read settings */
-    int val;
-    if (config_setting_lookup_int (ej->settings, "AutoHide", &val))
-    {
-        if (val == 1) ej->autohide = TRUE;
-        else ej->autohide = FALSE;
-    }
-    else ej->autohide = FALSE;
-#endif
-
     /* Set up variables */
     ej->popup = NULL;
     ej->menu = NULL;
@@ -507,6 +496,9 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     ej->plugin = gtk_button_new ();
     lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
 
+    /* Read config */
+    if (!config_setting_lookup_int (ej->settings, "fixed", &ej->autohide)) ej->autohide = FALSE;
+
     ej_init (ej);
 
     return ej->plugin;
@@ -545,9 +537,7 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
 
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
 
-    if (ej->autohide) update_icon (ej);
-    else gtk_widget_show_all (ej->plugin);
-
+    ej_update_display (ej);
     return FALSE;
 }
 
