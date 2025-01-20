@@ -1,2 +1,5 @@
 [encoding: UTF-8]
-plugins/ejecter/ejecter.c
+src/ejecter.c
+src/ejecter.cpp
+src/ejecter.h
+src/ejecter.hpp

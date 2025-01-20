@@ -1,23 +1,23 @@
-# English translations for PACKAGE package.
-# Copyright (C) 2017 THE PACKAGE'S COPYRIGHT HOLDER
-# This file is distributed under the same license as the PACKAGE package.
-#  <simon@raspberrypi.org>, 2017.
+# English translations for wf-panel-pi package.
+# Copyright (C) 2024 Raspberry Pi Ltd
+# This file is distributed under the same license as the wf-panel-pi package.
+# Simon Long <simon@raspberrypi.com>, 2024.
 #
 msgid ""
 msgstr ""
 "Project-Id-Version: PACKAGE VERSION\n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-17 13:04+0100\n"
-"PO-Revision-Date: 2017-03-06 16:38+0000\n"
-"Last-Translator:  <simon@raspberrypi.org>\n"
+"POT-Creation-Date: 2025-01-20 07:49+0000\n"
+"PO-Revision-Date: 2017-03-06 14:18+0000\n"
+"Last-Translator: Simon Long <simon@raspberrypi.com>\n"
 "Language-Team: English (British)\n"
 "Language: en_GB\n"
 "MIME-Version: 1.0\n"
-"Content-Type: text/plain; charset=ASCII\n"
+"Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
 
-#: ../plugins/ejecter/ejecter.c:188
+#: ../src/ejecter.c:228
 msgid ""
 "Drive was removed without ejecting\n"
 "Please use menu to eject before removal"
@@ -25,7 +25,8 @@ msgstr ""
 "Drive was removed without ejecting\n"
 "Please use menu to eject before removal"
 
-#: ../plugins/ejecter/ejecter.c:216
+#: ../src/ejecter.c:256
+#, c-format
 msgid ""
 "%s has been ejected\n"
 "It is now safe to remove the device"
@@ -33,7 +34,8 @@ msgstr ""
 "%s has been ejected\n"
 "It is now safe to remove the device"
 
-#: ../plugins/ejecter/ejecter.c:222
+#: ../src/ejecter.c:262
+#, c-format
 msgid ""
 "Failed to eject %s\n"
 "%s"
@@ -41,18 +43,18 @@ msgstr ""
 "Failed to eject %s\n"
 "%s"
 
-#: ../plugins/ejecter/ejecter.c:471
+#: ../src/ejecter.c:440
 msgid "Select a drive in menu to eject safely"
 msgstr "Select a drive in menu to eject safely"
 
-#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
+#: ../src/ejecter.c:559 ../src/ejecter.c:569 ../src/ejecter.cpp:40
 msgid "Ejecter"
 msgstr "Ejecter"
 
-#: ../plugins/ejecter/ejecter.c:532
+#: ../src/ejecter.c:561 ../src/ejecter.cpp:36
 msgid "Hide icon when no devices"
 msgstr "Hide icon when no devices"
 
-#: ../plugins/ejecter/ejecter.c:541
+#: ../src/ejecter.c:570
 msgid "Ejects mounted drives"
 msgstr "Ejects mounted drives"
