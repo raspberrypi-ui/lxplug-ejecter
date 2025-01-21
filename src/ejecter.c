@@ -497,7 +497,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     lxpanel_plugin_set_data (ej->plugin, ej, ejecter_destructor);
 
     /* Read config */
-    if (!config_setting_lookup_int (ej->settings, "fixed", &ej->autohide)) ej->autohide = FALSE;
+    if (!config_setting_lookup_int (ej->settings, "AutoHide", &ej->autohide)) ej->autohide = TRUE;
 
     ej_init (ej);
 
