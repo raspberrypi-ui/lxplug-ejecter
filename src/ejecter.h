@@ -25,6 +25,10 @@ ON ANY THEORY OF LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT
 SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 ============================================================================*/
 
+/*----------------------------------------------------------------------------*/
+/* Typedefs and macros                                                        */
+/*----------------------------------------------------------------------------*/
+
 typedef struct 
 {
 #ifdef LXPLUG
@@ -48,6 +52,15 @@ typedef struct
     GList *mdrives;
     guint hide_timer;
 } EjecterPlugin;
+
+/*----------------------------------------------------------------------------*/
+/* Prototypes                                                                 */
+/*----------------------------------------------------------------------------*/
+
+extern void ej_init (EjecterPlugin *ej);
+extern void ej_update_display (EjecterPlugin *ej);
+extern gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd);
+extern void ejecter_destructor (gpointer user_data);
 
 /* End of file */
 /*----------------------------------------------------------------------------*/

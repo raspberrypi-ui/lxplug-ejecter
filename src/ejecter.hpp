@@ -32,11 +32,8 @@ SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.
 #include <gtkmm/button.h>
 
 extern "C" {
+#include "lxutils.h"
 #include "ejecter.h"
-extern void ej_init (EjecterPlugin *ej);
-extern void ej_update_display (EjecterPlugin *ej);
-extern gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd);
-extern void ejecter_destructor (gpointer user_data);
 }
 
 class WayfireEjecter : public WayfireWidget
