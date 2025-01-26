@@ -50,7 +50,7 @@ void WayfireEjecter::bar_pos_changed_cb (void)
 void WayfireEjecter::icon_size_changed_cb (void)
 {
     ej->icon_size = icon_size;
-    ej_update_display (ej);
+    ejecter_update_display (ej);
 }
 
 void WayfireEjecter::command (const char *cmd)
@@ -60,14 +60,14 @@ void WayfireEjecter::command (const char *cmd)
 
 bool WayfireEjecter::set_icon (void)
 {
-    ej_update_display (ej);
+    ejecter_update_display (ej);
     return false;
 }
 
 void WayfireEjecter::settings_changed_cb (void)
 {
     ej->autohide = autohide;
-    ej_update_display (ej);
+    ejecter_update_display (ej);
 }
 
 void WayfireEjecter::init (Gtk::HBox *container)
@@ -85,7 +85,7 @@ void WayfireEjecter::init (Gtk::HBox *container)
     bar_pos_changed_cb ();
 
     /* Initialise the plugin */
-    ej_init (ej);
+    ejecter_init (ej);
 
     /* Setup callbacks */
     icon_size.set_callback (sigc::mem_fun (*this, &WayfireEjecter::icon_size_changed_cb));

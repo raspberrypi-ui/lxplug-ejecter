@@ -398,7 +398,7 @@ static void ejecter_button_clicked (GtkWidget *, EjecterPlugin * ej)
 }
 
 /* Handler for system config changed message from panel */
-void ej_update_display (EjecterPlugin * ej)
+void ejecter_update_display (EjecterPlugin * ej)
 {
     wrap_set_taskbar_icon (ej, ej->tray_icon, "media-eject");
     update_icon (ej);
@@ -427,7 +427,7 @@ gboolean ejecter_control_msg (EjecterPlugin *ej, const char *cmd)
     return TRUE;
 }
 
-void ej_init (EjecterPlugin *ej)
+void ejecter_init (EjecterPlugin *ej)
 {
     setlocale (LC_ALL, "");
     bindtextdomain (GETTEXT_PACKAGE, PACKAGE_LOCALE_DIR);
@@ -499,7 +499,7 @@ static GtkWidget *ejecter_constructor (LXPanel *panel, config_setting_t *setting
     /* Read config */
     if (!config_setting_lookup_int (ej->settings, "AutoHide", &ej->autohide)) ej->autohide = TRUE;
 
-    ej_init (ej);
+    ejecter_init (ej);
 
     return ej->plugin;
 }
@@ -520,7 +520,7 @@ static gboolean ejecter_button_press_event (GtkWidget *widget, GdkEventButton *e
 static void ejecter_configuration_changed (LXPanel *, GtkWidget *plugin)
 {
     EjecterPlugin *ej = lxpanel_plugin_get_data (plugin);
-    ej_update_display (ej);
+    ejecter_update_display (ej);
 }
 
 /* Handler for control message */
@@ -537,7 +537,7 @@ static gboolean ejecter_apply_configuration (gpointer user_data)
 
     config_group_set_int (ej->settings, "AutoHide", ej->autohide);
 
-    ej_update_display (ej);
+    ejecter_update_display (ej);
     return FALSE;
 }
 
