@@ -60,19 +60,34 @@ typedef struct {
 } EjectList;
 
 /*----------------------------------------------------------------------------*/
-/* Plug-in global data                                                        */
+/* Global data                                                                */
 /*----------------------------------------------------------------------------*/
 
 /*----------------------------------------------------------------------------*/
 /* Prototypes                                                                 */
 /*----------------------------------------------------------------------------*/
 
+static void log_eject (EjecterPlugin *ej, GDrive *drive);
+static gboolean was_ejected (EjecterPlugin *ej, GDrive *drive);
+static void log_mount (EjecterPlugin *ej, GMount *mount);
+static void log_init_mounts (EjecterPlugin *ej);
+static gboolean was_mounted (EjecterPlugin *ej, GDrive *drive);
+static void add_seq_for_drive (EjecterPlugin *ej, GDrive *drive, int seq);
+static void handle_mount_in (GtkWidget *, GMount *mount, gpointer data);
+static void handle_mount_out (GtkWidget *, GMount *mount, gpointer data);
+static void handle_mount_pre (GtkWidget *, GMount *mount, gpointer data);
+static void handle_volume_in (GtkWidget *, GVolume *vol, gpointer data);
+static void handle_volume_out (GtkWidget *, GVolume *vol, gpointer data);
+static void handle_drive_in (GtkWidget *, GDrive *drive, gpointer data);
+static void handle_drive_out (GtkWidget *, GDrive *drive, gpointer data);
 static void handle_eject_clicked (GtkWidget *widget, gpointer ptr);
 static void eject_done (GObject *source_object, GAsyncResult *res, gpointer ptr);
+static gboolean is_drive_mounted (GDrive *d);
 static void update_icon (EjecterPlugin *ej);
 static void show_menu (EjecterPlugin *ej);
 static void hide_menu (EjecterPlugin *ej);
 static GtkWidget *create_menuitem (EjecterPlugin *ej, GDrive *d);
+static void ejecter_button_clicked (GtkWidget *, EjecterPlugin * ej);
 
 /*----------------------------------------------------------------------------*/
 /* Function definitions                                                       */
