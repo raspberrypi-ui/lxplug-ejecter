@@ -7,8 +7,8 @@ msgid ""
 msgstr ""
 "Project-Id-Version: \n"
 "Report-Msgid-Bugs-To: \n"
-"POT-Creation-Date: 2021-09-17 13:04+0100\n"
-"PO-Revision-Date: 2020-11-29 20:05+0100\n"
+"POT-Creation-Date: 2025-02-03 11:07+0000\n"
+"PO-Revision-Date: 2025-01-31 22:27+0100\n"
 "Last-Translator: Jose Riha <jose1711@gmail.com>\n"
 "Language-Team: Slovak\n"
 "Language: sk\n"
@@ -16,17 +16,18 @@ msgstr ""
 "Content-Type: text/plain; charset=UTF-8\n"
 "Content-Transfer-Encoding: 8bit\n"
 "Plural-Forms: nplurals=2; plural=(n != 1);\n"
-"X-Generator: Poedit 2.4.1\n"
+"X-Generator: Poedit 3.5\n"
 
-#: ../plugins/ejecter/ejecter.c:188
+#: ../src/ejecter.c:243
 msgid ""
 "Drive was removed without ejecting\n"
 "Please use menu to eject before removal"
 msgstr ""
 "Zariadenie bolo odstránené bez odpojenia\n"
-"Použite, prosím, ponuku na odpojenie pred odstránením"
+"Použite, prosím, ponuku na odpojenie pred jeho odstránením"
 
-#: ../plugins/ejecter/ejecter.c:216
+#: ../src/ejecter.c:271
+#, c-format
 msgid ""
 "%s has been ejected\n"
 "It is now safe to remove the device"
@@ -34,7 +35,8 @@ msgstr ""
 "%s bolo odpojené\n"
 "Teraz môžete zariadenie bezpečne odstrániť"
 
-#: ../plugins/ejecter/ejecter.c:222
+#: ../src/ejecter.c:277
+#, c-format
 msgid ""
 "Failed to eject %s\n"
 "%s"
@@ -42,18 +44,20 @@ msgstr ""
 "Nepodarilo sa odpojiť %s\n"
 "%s"
 
-#: ../plugins/ejecter/ejecter.c:471
+#: ../src/ejecter.c:455
 msgid "Select a drive in menu to eject safely"
 msgstr "Vyberte zariadenie, ktoré chcete bezpečne odpojiť"
 
-#: ../plugins/ejecter/ejecter.c:530 ../plugins/ejecter/ejecter.c:540
+#: ../src/ejecter.c:558 ../src/ejecter.c:568 ../src/ejecter.cpp:41
 msgid "Ejecter"
 msgstr "Bezpečné odpojenie"
 
-#: ../plugins/ejecter/ejecter.c:532
+#: ../src/ejecter.c:560 ../src/ejecter.cpp:37
 msgid "Hide icon when no devices"
 msgstr "Skryť ikonu pri chýbajúcich zariadeniach"
 
-#: ../plugins/ejecter/ejecter.c:541
+#: ../src/ejecter.c:569
 msgid "Ejects mounted drives"
 msgstr "Odpojí pripojené zariadenia"
+
+#, c-format
