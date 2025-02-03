@@ -458,9 +458,6 @@ void ejecter_init (EjecterPlugin *ej)
     gtk_button_set_relief (GTK_BUTTON (ej->plugin), GTK_RELIEF_NONE);
 #ifndef LXPLUG
     g_signal_connect (ej->plugin, "clicked", G_CALLBACK (ejecter_button_clicked), ej);
-
-    /* Set up long press */
-    ej->gesture = add_long_press (ej->plugin, NULL, NULL);
 #endif
 
     /* Set up variables */
@@ -488,9 +485,6 @@ void ejecter_destructor (gpointer user_data)
 {
     EjecterPlugin *ej = (EjecterPlugin *) user_data;
 
-#ifndef LXPLUG
-    if (ej->gesture) g_object_unref (ej->gesture);
-#endif
     g_free (ej);
 }
 
